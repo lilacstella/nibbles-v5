@@ -9,19 +9,8 @@ from handler import engine
 Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine)
 
-# Models
-class Wishlist(Base):
-	__tablename__ = 'wishlist'
-	user_id = Column(String(255), primary_key=True)
-	item_name = Column(String(255), primary_key=True)
-	item_comment = Column(Text)
-	item_link = Column(String(512))
-
-class SecretSanta(Base):
-	__tablename__ = 'secret_santa'
-	giver = Column(String(255), primary_key=True)
-	receiver = Column(String(255), nullable=False)
-
+# Import models from a single source to avoid duplication
+from db_utils.setup_table import Wishlist, SecretSanta
 # CRUD functions
 def create_wishlist_item(user_id, item_name, item_comment=None, item_link=None):
 	with SessionLocal() as session:
