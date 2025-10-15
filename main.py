@@ -12,13 +12,6 @@ client = discord.Client(intents=intents)
 async def on_ready():
     print(f'logged in as {client.user}')
 
-# Load DB connection string and set up engine
-with open('config/env.toml', 'rb') as f:
-    env_config = tomllib.load(f)
-connection_string = env_config[env_config['env']]['connection_string']
-engine = create_engine(connection_string, echo=True)
-Base.metadata.create_all(engine)
-
 with open('config/auth.toml', 'rb') as f:
     config = tomllib.load(f)
 
