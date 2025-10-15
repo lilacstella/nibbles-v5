@@ -18,7 +18,7 @@ class SecretSantaAssignment(Base):
     context: Mapped["SecretSantaContext"] = relationship()
     receiver_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     receiver: Mapped["User"] = relationship(back_populates="receiving_from")
-    gifter_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    gifter_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     gifter: Mapped["User"] = relationship(back_populates="gifting_to")
 
     def __repr__(self) -> str:
