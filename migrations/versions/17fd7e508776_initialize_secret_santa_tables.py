@@ -39,9 +39,9 @@ def upgrade() -> None:
     sa.Column('context_id', sa.Integer(), nullable=False),
     sa.Column('receiver_id', sa.Integer(), nullable=False),
     sa.Column('gifter_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['context_id'], ['secret_santa_contexts.id'], ),
-    sa.ForeignKeyConstraint(['gifter_id'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['receiver_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['context_id'], ['secret_santa_contexts.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['gifter_id'], ['users.id'], ondelete='CASCADE'),
+    sa.ForeignKeyConstraint(['receiver_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
