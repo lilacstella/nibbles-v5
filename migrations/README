@@ -1,0 +1,10 @@
+Generic single-database configuration.
+
+use
+`alembic upgrade head`
+to upgrade the current schema
+
+
+Update the models and use
+`alembic revision --autogenerate -m "message"`
+to automatically create revisions
