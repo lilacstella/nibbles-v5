@@ -1,18 +1,27 @@
 import discord
+from discord.ext import commands
+
+class Bot(commands.Bot):
+    def __init__(self):
+        super().__init__(
+            command_prefix="!",
+            intents=discord.Intents.none()
+        )
+
+    async def on_ready(self):
+        print(f'logged in as {self.user}')
+
+    # the method to override in order to run whatever you need before your bot starts
+    async def setup_hook(self):
+        await self.load_extension("discord_commands.secret_santa")
+        print(self.tree)
+        print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
+
 import tomllib
-from sqlalchemy import create_engine
-from models.base import Base
-from models.users import User
-from models.secret_santa import SecretSantaAssignment
-
-intents = discord.Intents(messages=True, reactions=True)
-client = discord.Client(intents=intents)
-
-@client.event
-async def on_ready():
-    print(f'logged in as {client.user}')
-
 with open('config/auth.toml', 'rb') as f:
     config = tomllib.load(f)
 
-client.run(config['discord']['token'])
+# Load cogs and run bot
+if __name__ == "__main__":
+    bot = Bot()
+    bot.run(config['discord']['token'])
