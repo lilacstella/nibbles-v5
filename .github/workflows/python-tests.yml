@@ -32,3 +32,11 @@ jobs:
         name: test-results
         path: junit/test-results.xml
       if: ${{ always() }}
+
+    - name: Test Report
+      uses: dorny/test-reporter@v2
+      if: ${{ !cancelled() }}       # run this step even if previous step failed
+      with:
+        name: Pytest Tests            # Name of the check run which will be created
+        path: junit/test-results.xml    # Path to test results
+        reporter: junit        # Format of test results
