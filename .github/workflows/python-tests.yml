@@ -23,7 +23,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Test with pytest
-        run: pytest tests.py --doctest-modules --junitxml=junit/test-results-${{ matrix.python-version }}.xml
+      run: pytest tests.py --doctest-modules --junitxml=junit/test-results-${{ matrix.python-version }}.xml
 
     - name: Upload Test Results
       uses: actions/upload-artifact@v3
