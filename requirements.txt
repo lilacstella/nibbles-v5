@@ -2,3 +2,4 @@ discord.py~=2.6.3
 sqlalchemy==2.0.43
 psycopg2==2.9.10
 alembic~=1.17.0
+pytest~=8.4.2
