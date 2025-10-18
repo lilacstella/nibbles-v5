@@ -1,11 +1,10 @@
 from main import session_maker
-from models.users import User
-from models.secret_santa import SecretSantaAssignment
+from models.users_model import User
+from models.secret_santa_model import SecretSantaAssignment
 
 import random
-from typing import List
 
-def create_secret_santa_game(user_ids: List[str], gift_count: int) -> None:
+def create_secret_santa_game(user_ids: set[int], gift_count: int) -> None:
     """
     Registers users, randomizes assignments, and commits Secret Santa assignments to the DB.
     Args:

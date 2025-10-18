@@ -16,7 +16,7 @@ class Bot(commands.Bot):
 
     # the method to override in order to run whatever you need before your bot starts
     async def setup_hook(self):
-        await self.load_extension("discord_interface.secret_santa")
+        await self.load_extension("discord_interface.secret_santa_interface")
         # print(self.tree)
         # print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
 
