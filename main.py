@@ -1,5 +1,8 @@
+import tomllib
 import discord
 from discord.ext import commands
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 class Bot(commands.Bot):
     def __init__(self):
@@ -17,7 +20,13 @@ class Bot(commands.Bot):
         # print(self.tree)
         # print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
 
-import tomllib
+with open('config/env.toml', 'rb') as f:
+    env = tomllib.load(f)
+
+engine = create_engine(env[env['env']]['connection_string'], echo=True)
+session_maker = sessionmaker(bind=engine)
+
+
 with open('config/auth.toml', 'rb') as f:
     config = tomllib.load(f)
 
