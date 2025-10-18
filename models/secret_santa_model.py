@@ -46,8 +46,9 @@ class SecretSantaAssignment(Base):
         back_populates="receiving_from",
     )
 
-    def __init__(self, gifter: "User", receiver: "User", **kw: Any):
+    def __init__(self, context: SecretSantaContext, gifter: "User", receiver: "User", **kw: Any):
         super().__init__(**kw)
+        self.context = context
         self.gifter = gifter
         self.receiver = receiver
 
@@ -55,11 +56,11 @@ class SecretSantaAssignment(Base):
         return f"SecretSantaAssignment(id={self.id!r}, receiver_id={self.receiver_id!r}, gifter_id={self.gifter_id!r})"
 
     @classmethod
-    def assign(cls, session: Session, assignments: dict[int, set[int]]) -> None:
+    def assign(cls, session: Session, context: SecretSantaContext, assignments: dict["User", set["User"]]) -> None:
         """Add and commit all SecretSantaAssignment objects from a dict of lists to the DB."""
-        for gifter_user_id, receiver_user_ids in assignments.items():
-            for receiver_user_id in receiver_user_ids:
-                # convert them into objects i think
-                assignment = SecretSantaAssignment(gifter_user_id, receiver_user_id)
+
+        for gifter, receivers in assignments.items():
+            for receiver in receivers:
+                assignment = SecretSantaAssignment(context, gifter, receiver)
                 session.add(assignment)
         session.commit()
