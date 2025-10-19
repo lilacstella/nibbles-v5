@@ -1,7 +1,7 @@
 from core.secret_santa_service import create_secret_santa_game
 
 import discord
-from discord import app_commands
+from discord import app_commands, Embed
 from discord.ui import Button, View
 from discord.ext import commands
 
@@ -19,24 +19,47 @@ class SecretSantaSession:
     def start(self, gift_count: int):
         create_secret_santa_game(self.guild_id, self.channel_id, self.participants, gift_count)
 
-# channel_id: SecretSantaSession
-secret_santa_sessions = {}
-
-class JoinSecretSantaSession(Button):
+class Join(Button):
     def __init__(self):
-        super().__init__(label="join")
+        super().__init__(label="join", style=discord.ButtonStyle.success)
 
     async def callback(self, interaction: discord.Interaction):
-        secret_santa_sessions[interaction.channel_id].add_participant(str(interaction.user.id))
-        await interaction.response.send_message(f"hi {interaction.user.name}")
+        secret_santa_sessions[interaction.channel_id].add_participant(interaction.user.id)
+        embeds[interaction.channel_id].update()
+        await interaction.response.edit_message(embed=embeds[interaction.channel_id])
 
-class StartSecretSantaSession(Button):
+class Leave(Button):
     def __init__(self):
-        super().__init__(label="start")
+        super().__init__(label="leave", style=discord.ButtonStyle.danger)
+
+    async def callback(self, interaction: discord.Interaction):
+        secret_santa_sessions[interaction.channel_id].participants.remove(interaction.user.id)
+        embeds[interaction.channel_id].update()
+        await interaction.response.edit_message(embed=embeds[interaction.channel_id])
+
+class Start(Button):
+    def __init__(self):
+        super().__init__(label="start", style=discord.ButtonStyle.primary)
 
     async def callback(self, interaction: discord.Interaction):
         secret_santa_sessions[interaction.channel_id].start(gift_count=2)
         await interaction.response.send_message("start da gam")
+
+class StatusPage(Embed):
+    def __init__(self, session: SecretSantaSession):
+        super().__init__(title="Secret Santa Session")
+        self.session = session
+        self.update()
+
+    def update(self):
+        self.clear_fields()
+        participant_mentions = [f"<@{user_id}>" for user_id in self.session.participants]
+        self.add_field(name="Participants", value="\n".join(participant_mentions) if participant_mentions else "No participants yet.")
+        
+
+# channel_id: SecretSantaSession
+secret_santa_sessions = {}
+embeds = {}
 
 class SecretSanta(commands.Cog):
     def __init__(self, bot):
@@ -46,10 +69,12 @@ class SecretSanta(commands.Cog):
     @app_commands.guilds(805821298193465384)
     async def start_secret_santa(self, interaction: discord.Interaction):
         secret_santa_sessions[interaction.channel_id] = SecretSantaSession(interaction.guild_id, interaction.channel_id)
-        view = View(timeout=600)
-        view.add_item(JoinSecretSantaSession())
-        view.add_item(StartSecretSantaSession())
-        await interaction.response.send_message(interaction.user.mention, view=view)
+        view = View(timeout=None)
+        view.add_item(Join())
+        view.add_item(Leave())
+        view.add_item(Start())
+        embeds[interaction.channel_id] = StatusPage(secret_santa_sessions[interaction.channel_id])
+        await interaction.response.send_message(view=view, embed=embeds[interaction.channel_id])
 
 async def setup(bot):
     await bot.add_cog(SecretSanta(bot=bot))

@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import models.secret_santa as secret_santa
+import models.secret_santa_model as secret_santa
 
 # Holder tests for functions, use @pytest.mark.parametrize to create multiple test cases
 @pytest.mark.parametrize("user_id, item_name, item_comment, item_link", [
