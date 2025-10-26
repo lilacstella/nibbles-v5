@@ -19,6 +19,7 @@ class Bot(commands.Bot):
         await self.load_extension("discord_interface.secret_santa_interface")
         # print(self.tree)
         # print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
+        print(await self.tree.sync(guild=discord.Object(id='607298393370394625')))
 
 with open('config/env.toml', 'rb') as f:
     env = tomllib.load(f)

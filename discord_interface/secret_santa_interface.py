@@ -218,7 +218,7 @@ class SecretSanta(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="secret-santa", description="View the secret santa session in this channel.")
-    @app_commands.guilds(805821298193465384)
+    @app_commands.guilds(607298393370394625, 805821298193465384)
     async def secret_santa(self, interaction: discord.Interaction):
         view = LayoutView(timeout=None)
         if does_secret_santa_game_exist(interaction.channel_id):
