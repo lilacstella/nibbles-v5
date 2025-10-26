@@ -32,31 +32,3 @@ def test_secret_santa_assignment_mock():
     assert assignment.receiver_id == 2
     assert assignment.secret_santa_context.guild_id == 123
     assert assignment.secret_santa_context.channel_id == 456
-    
-@pytest.mark.parametrize("n, gift_count, users, expected_exception", [
-    (4, 2, [MagicMock(id=i) for i in range(4)], None),
-    (5, 2, [MagicMock(id=i) for i in range(5)], None),
-    (4, 3, [MagicMock(id=i) for i in range(4)], ValueError),
-    (6, 6, [MagicMock(id=i) for i in range(6)], ValueError),
-])
-def test_create_valid_assignment(n, gift_count, users, expected_exception):
-    if expected_exception:
-        with pytest.raises(expected_exception):
-            secret_santa_service.create_valid_assignment(n, gift_count, users)
-    else:
-        assignments = secret_santa_service.create_valid_assignment(n, gift_count, users)
-        assert len(assignments) == n
-        seen_assignments = set()
-        for gifter, receivers in assignments.items():
-            assert len(receivers) == gift_count
-            assert gifter not in receivers
-            assert frozenset(receivers) not in seen_assignments
-            seen_assignments.add(frozenset(receivers))
-
-def exaustive_test_create_valid_assignment():
-    for _ in range(100):
-        test_create_valid_assignment(4, 2, [MagicMock(id=i) for i in range(4)], None)
-    for _ in range(100):
-        test_create_valid_assignment(10, 5, [MagicMock(id=i) for i in range(5)], None)
-    for _ in range(100):
-        test_create_valid_assignment(25, 5, [MagicMock(id=i) for i in range(10)], None)

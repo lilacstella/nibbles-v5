@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
-    discord_user_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    discord_user_id: Mapped[str] = mapped_column(unique=True, nullable=False)
 
     gifting_to: Mapped[List["SecretSantaAssignment"]] = relationship(
         "SecretSantaAssignment",
@@ -28,7 +28,7 @@ class User(Base):
         return f"User(id={self.id!r}, discord_user_id={self.discord_user_id!r})"
 
     @classmethod
-    def get_or_create(cls, session, discord_user_id: int) -> "User":
+    def get_or_create(cls, session, discord_user_id: str) -> "User":
         """Get a user by discord_user_id, or create if not exists."""
         user = session.query(cls).filter_by(discord_user_id=discord_user_id).first()
         if user:

@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING, Any
 from models.base import Base
 
 if TYPE_CHECKING:
-    # avoid circular imports at runtime; used only for type checking
     from models.users_model import User
 
 class SecretSantaContext(Base):
     __tablename__ = "secret_santa_contexts"
     id: Mapped[int] = mapped_column(primary_key=True)
-    guild_id: Mapped[int] = mapped_column(unique=True)
-    channel_id: Mapped[int] = mapped_column(unique=True, nullable=False)
+    guild_id: Mapped[str] = mapped_column(unique=True)
+    channel_id: Mapped[str] = mapped_column(unique=True, nullable=False)
+    crazy_mode: Mapped[bool] = mapped_column(default=False, nullable=False)
 
     assignments: Mapped[list["SecretSantaAssignment"]] = relationship(
         "SecretSantaAssignment",
@@ -54,13 +54,3 @@ class SecretSantaAssignment(Base):
 
     def __repr__(self) -> str:
         return f"SecretSantaAssignment(id={self.id!r}, receiver_id={self.receiver_id!r}, gifter_id={self.gifter_id!r})"
-
-    @classmethod
-    def assign(cls, session: Session, context: SecretSantaContext, assignments: dict["User", set["User"]]) -> None:
-        """Add and commit all SecretSantaAssignment objects from a dict of lists to the DB."""
-
-        for gifter, receivers in assignments.items():
-            for receiver in receivers:
-                assignment = SecretSantaAssignment(context, gifter, receiver)
-                session.add(assignment)
-        session.commit()

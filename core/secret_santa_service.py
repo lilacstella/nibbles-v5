@@ -5,42 +5,138 @@ from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext
 import random
 from typing import List
 
-def create_valid_assignment(n: int, gift_count: int, users: List["User"]) -> dict["User", set["User"]]:
-    if n <= gift_count + 1:
-        raise ValueError('Impossible to create secret santa with such arrangement')
-    if gift_count > 5:
-        raise ValueError('Please request explicit privileges to have more gifting assignment')
-
-    unique_random_offsets = []
-    while len(set(unique_random_offsets)) < gift_count:
-        unique_random_offsets = [random.randint(1, n - 1) for _ in range(gift_count)]
-
-    assignments = {}
-    for i in range(n):
-        assignments[users[i]] = set(users[(i + offset) % n] for offset in unique_random_offsets)
-    return assignments
-
-def create_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int], gift_count: int) -> None:
+def create_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int]) -> None:
     """
     Registers users, randomizes assignments, and commits Secret Santa assignments to the DB.
     Args:
         :param guild_id:
         :param channel_id:
         :param user_ids: List of Discord user IDs (as strings)
-        :param gift_count: the number of gifts that each participant will give and receive
     """
     with session_maker() as session:
-        users: List["User"] = [User.get_or_create(session, _id) for _id in user_ids]
-    n = len(user_ids)
-
-    assignments = create_valid_assignment(n, gift_count, users)
+        users: List["User"] = [User.get_or_create(session, str(_id)) for _id in user_ids]
+    random.shuffle(users)
 
     with session_maker() as session:
-        game = SecretSantaContext(guild_id=guild_id, channel_id=channel_id)
+        game = SecretSantaContext(guild_id=str(guild_id) if guild_id is not None else None, channel_id=str(channel_id), crazy_mode=False)
         session.add(game)
-        SecretSantaAssignment.assign(session, game, assignments)
+        for i in range(len(users)):
+            a = SecretSantaAssignment(game, users[i], users[(i + 1) % len(users)])
+            session.add(a)
+        session.commit()
+
+def create_special_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int]) -> None:
+    with session_maker() as session:
+        users: List["User"] = [User.get_or_create(session, str(_id)) for _id in user_ids]
+    random.shuffle(users)
+
+    config_num = random.randint(0, 2)
+    gifting = {}
+    match config_num:
+        case 0:
+            gifting = {
+                0: {1, 2},
+                1: {0, 3},
+                2: {1, 3},
+                3: {0, 2},
+            }
+        case 1:
+            gifting = {
+                0: {1, 3},
+                1: {0, 2},
+                2: {0, 3},
+                3: {1, 2},
+            }
+        case 2:
+            gifting = {
+                0: {2, 3},
+                1: {0, 3},
+                2: {0, 1},
+                3: {1, 2},
+            }
+
+    with session_maker() as session:
+        game = SecretSantaContext(guild_id=str(guild_id) if guild_id is not None else None, channel_id=str(channel_id), crazy_mode=True)
+        session.add(game)
+        for gifter_idx, receiver_indices in gifting.items():
+            for receiver_idx in receiver_indices:
+                session.add(SecretSantaAssignment(game, users[gifter_idx], users[receiver_idx]))
+        session.commit()
 
 
-# questions: TODO
-# does it uphold the criteria? lets run simulations
-# how many times do we have to randomize?
+def does_secret_santa_game_exist(channel_id: int) -> bool:
+    """
+    Checks if a Secret Santa game already exists in the specified channel.
+    Args:
+        :param channel_id: Discord channel ID
+    Returns:
+        :return: True if a game exists, False otherwise
+    """
+    with session_maker() as session:
+        existing_game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        return existing_game is not None
+
+
+def get_num_participants(channel_id: int) -> int:
+    """
+    Returns the number of participants in the Secret Santa game in the specified channel.
+
+    :param channel_id: Discord channel ID
+    :return: Number of participants
+    """
+    with session_maker() as session:
+        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        if not game:
+            return 0
+        num_participants = session.query(SecretSantaAssignment).filter_by(context_id=game.id).count()
+        return num_participants
+
+def is_crazy_mode(channel_id: int) -> bool:
+    """
+
+    :param channel_id:
+    :return:
+    """
+    with session_maker() as session:
+        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        return game.crazy_mode
+
+
+def get_recipient_discord_id(channel_id: int, giver_discord_id: str) -> list[str]:
+    """Return the recipient(s) discord_user_id string(s) for the given giver in the given channel.
+
+    This returns a list because in "crazy mode" or special games a giver may be assigned multiple receivers.
+
+    Args:
+        channel_id: Discord channel id where the game is running
+        giver_discord_id: giver's discord id as a string (or something convertible to str)
+
+    Returns:
+        List of discord_user_id strings of the receivers (empty list if none found)
+    """
+    with session_maker() as session:
+        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        if not game:
+            return []
+
+        # find the User row for the giver
+        giver = session.query(User).filter_by(discord_user_id=str(giver_discord_id)).first()
+        if not giver:
+            return []
+
+        # find all assignments for this game where this user is the gifter
+        assignments = (
+            session.query(SecretSantaAssignment)
+            .filter_by(context_id=game.id, gifter_id=giver.id)
+            .all()
+        )
+        if not assignments:
+            return []
+
+        recipient_ids: list[str] = []
+        for a in assignments:
+            receiver = session.get(User, a.receiver_id)
+            if receiver and receiver.discord_user_id:
+                recipient_ids.append(receiver.discord_user_id)
+
+        return recipient_ids
