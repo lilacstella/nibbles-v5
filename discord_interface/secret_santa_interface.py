@@ -224,7 +224,7 @@ class SecretSanta(commands.Cog):
         if does_secret_santa_game_exist(interaction.channel_id):
             page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))
             view.add_item(page)
-            await interaction.response.send_message(view=view)
+            await interaction.response.send_message(view=view, ephemeral=True)
             return
 
         if interaction.channel_id in secret_santa_lobbies:
