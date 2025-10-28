@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import core.secret_santa_service as secret_santa_service
 import models.secret_santa_model as secret_santa_model
 
 # mock secret santa context
