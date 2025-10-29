@@ -125,6 +125,28 @@ async def get_or_fetch_member(interaction, user_id: int) -> discord.User | None:
   except discord.NotFound:
     return None
 
+class ShowRecipientButton(Button):
+    def __init__(self):
+        super().__init__(label="Show my recipient",
+                         style=discord.ButtonStyle.success,
+                         custom_id="show_recipient")
+
+    async def callback(self, interaction: discord.Interaction):
+        user_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        user = await get_or_fetch_member(interaction, int(user_id))
+        if user is None:
+            await interaction.response.send_message("Could not find your assigned recipient "
+                                                    "(no active game or you're not registered).", ephemeral=True)
+            return
+
+        output = f"Your assigned recipient is: {user.mention}"
+        if is_crazy_mode(interaction.channel_id):
+            user_id_2 = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+            user_2 = await get_or_fetch_member(interaction, int(user_id_2))
+            output += f" and {user_2.mention}"
+        await interaction.response.send_message(output, ephemeral=True)
+
+
 class MsgRecipientButton(Button):
     def __init__(self):
         super().__init__(label="Message your recipient",
@@ -204,7 +226,7 @@ class StatusPage(Container):
                 f"## Your Secret Santa has {num} participants"
             )
         )
-
+        self.add_item(ActionRow(ShowRecipientButton()))
         if crazy_mode:
             ar = ActionRow(MsgRecipientButton(), MsgRecipientButton2())
         else:
