@@ -22,8 +22,8 @@ if config.config_file_name is not None:
 
 # Import models for autogenerate
 from models.base import Base
-from models.users import User
-from models.secret_santa import SecretSantaAssignment, SecretSantaContext
+from models.users_model import User
+from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext
 
 target_metadata = Base.metadata
 
