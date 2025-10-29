@@ -106,27 +106,27 @@ def  get_one_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=giver_discord_id).first()
         if not user:
-            raise ValueError(f"User with discord_id {giver_discord_id} not found")
-
+            raise ValueError(f"User with discord_id {giver_discord_id} not found in db")
+        
         # Filter the user's gifting assignments by channel
         for assignment in user.gifting_to:
             if assignment.context.channel_id == str(channel_id):
                 return assignment.receiver.discord_user_id
-
+        
         raise ValueError(f"No assignment found for user {giver_discord_id} in channel {channel_id}")
 
-def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str | None:
+def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str:
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=giver_discord_id).first()
         if not user:
-            return None
-
+            raise ValueError(f"User with discord_id {giver_discord_id} not found in db")
+        
         # Get all assignments for this user in this channel
         channel_assignments = [
-            assignment for assignment in user.gifting_to
+            assignment for assignment in user.gifting_to 
             if assignment.context.channel_id == str(channel_id)
         ]
-
+        
         if len(channel_assignments) >= 2:
             return channel_assignments[1].receiver.discord_user_id
-        return None
+        raise ValueError(f"No second assignment found for user {giver_discord_id} in channel {channel_id}")
