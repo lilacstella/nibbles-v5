@@ -15,13 +15,15 @@ class User(Base):
         "SecretSantaAssignment",
         back_populates="gifter",
         cascade="all, delete-orphan",
-        foreign_keys="SecretSantaAssignment.gifter_id",
+        foreign_keys='SecretSantaAssignment.gifter_id',
+        order_by='SecretSantaAssignment.id',
     )
     receiving_from: Mapped[List["SecretSantaAssignment"]] = relationship(
         "SecretSantaAssignment",
         back_populates="receiver",
         cascade="all, delete-orphan",
-        foreign_keys="SecretSantaAssignment.receiver_id",
+        foreign_keys='SecretSantaAssignment.receiver_id',
+        order_by='SecretSantaAssignment.id',
     )
 
     def __repr__(self) -> str:

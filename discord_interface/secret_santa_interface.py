@@ -1,6 +1,7 @@
 from core.secret_santa_service import create_secret_santa_game, create_special_secret_santa_game, \
-    does_secret_santa_game_exist, get_num_participants, get_recipient_discord_id, is_crazy_mode
-from main import config
+    does_secret_santa_game_exist, get_num_participants, is_crazy_mode, \
+    get_one_recipient_discord_id, get_second_recipient_discord_id
+from main import auth_config
 
 import discord
 from discord import app_commands
@@ -106,7 +107,7 @@ class LobbyPage(Container):
                 children.disabled = True
         self.add_item(ar)
         buttons = [Start()]
-        if str(self.channel_id) in config['discord']['special_secret_santa_channels']:
+        if str(self.channel_id) in auth_config['discord']['special_secret_santa_channels']:
             buttons.append(StartPlus())
 
         if self.expire:
@@ -132,10 +133,8 @@ class MsgRecipientButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         # open a modal to collect the message to send
-        user_ids = get_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
-        user = await get_or_fetch_member(interaction, int(user_ids[0]))
-
-        print(user_ids, user)
+        user_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        user = await get_or_fetch_member(interaction, int(user_id))
         modal = MessageRecipientModal(title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
@@ -148,8 +147,8 @@ class MsgRecipientButton2(Button):
 
     async def callback(self, interaction: discord.Interaction):
         # open a modal to collect the message to send
-        user_ids = get_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
-        user = await get_or_fetch_member(interaction, int(user_ids[1]))
+        user_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        user = await get_or_fetch_member(interaction, int(user_id))
         modal = MessageRecipientModal(title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
@@ -171,7 +170,7 @@ class MessageRecipientModal(discord.ui.Modal, title="Message your recipient"):
             await interaction.response.send_message("Message was empty.", ephemeral=True)
             return
 
-        recipient_discord_id = get_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        recipient_discord_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
         if not recipient_discord_id:
             await interaction.response.send_message("Could not find your assigned recipient (no active game or you're not registered).", ephemeral=True)
             return

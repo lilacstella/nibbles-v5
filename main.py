@@ -22,16 +22,15 @@ class Bot(commands.Bot):
         print(await self.tree.sync(guild=discord.Object(id='607298393370394625')))
 
 with open('config/env.toml', 'rb') as f:
-    env = tomllib.load(f)
-
-engine = create_engine(env[env['env']]['connection_string'], echo=True)
-session_maker = sessionmaker(bind=engine)
-
+    env_config = tomllib.load(f)
 
 with open('config/auth.toml', 'rb') as f:
-    config = tomllib.load(f)
+    auth_config = tomllib.load(f)
+
+engine = create_engine(env_config[env_config['env']]['connection_string'], echo=True)
+session_maker = sessionmaker(bind=engine)
 
 # Load cogs and run bot
 if __name__ == "__main__":
     bot = Bot()
-    bot.run(config['discord']['token'])
+    bot.run(auth_config['discord']['token'])

@@ -4,6 +4,7 @@ from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext
 
 import random
 from typing import List
+from sqlalchemy import func
 
 def create_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int]) -> None:
     """
@@ -88,8 +89,8 @@ def get_num_participants(channel_id: int) -> int:
         game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
         if not game:
             return 0
-        num_participants = session.query(SecretSantaAssignment).filter_by(context_id=game.id).count()
-        return num_participants
+        count = session.query(func.count(func.distinct(SecretSantaAssignment.gifter_id))).scalar()
+        return count
 
 def is_crazy_mode(channel_id: int) -> bool:
     """
@@ -101,42 +102,31 @@ def is_crazy_mode(channel_id: int) -> bool:
         game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
         return game.crazy_mode
 
-
-def get_recipient_discord_id(channel_id: int, giver_discord_id: str) -> list[str]:
-    """Return the recipient(s) discord_user_id string(s) for the given giver in the given channel.
-
-    This returns a list because in "crazy mode" or special games a giver may be assigned multiple receivers.
-
-    Args:
-        channel_id: Discord channel id where the game is running
-        giver_discord_id: giver's discord id as a string (or something convertible to str)
-
-    Returns:
-        List of discord_user_id strings of the receivers (empty list if none found)
-    """
+def  get_one_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str:
     with session_maker() as session:
-        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
-        if not game:
-            return []
+        user = session.query(User).filter_by(discord_user_id=giver_discord_id).first()
+        if not user:
+            raise ValueError(f"User with discord_id {giver_discord_id} not found")
 
-        # find the User row for the giver
-        giver = session.query(User).filter_by(discord_user_id=str(giver_discord_id)).first()
-        if not giver:
-            return []
+        # Filter the user's gifting assignments by channel
+        for assignment in user.gifting_to:
+            if assignment.context.channel_id == str(channel_id):
+                return assignment.receiver.discord_user_id
 
-        # find all assignments for this game where this user is the gifter
-        assignments = (
-            session.query(SecretSantaAssignment)
-            .filter_by(context_id=game.id, gifter_id=giver.id)
-            .all()
-        )
-        if not assignments:
-            return []
+        raise ValueError(f"No assignment found for user {giver_discord_id} in channel {channel_id}")
 
-        recipient_ids: list[str] = []
-        for a in assignments:
-            receiver = session.get(User, a.receiver_id)
-            if receiver and receiver.discord_user_id:
-                recipient_ids.append(receiver.discord_user_id)
+def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str | None:
+    with session_maker() as session:
+        user = session.query(User).filter_by(discord_user_id=giver_discord_id).first()
+        if not user:
+            return None
 
-        return recipient_ids
+        # Get all assignments for this user in this channel
+        channel_assignments = [
+            assignment for assignment in user.gifting_to
+            if assignment.context.channel_id == str(channel_id)
+        ]
+
+        if len(channel_assignments) >= 2:
+            return channel_assignments[1].receiver.discord_user_id
+        return None
