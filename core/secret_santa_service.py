@@ -1,6 +1,6 @@
 from main import session_maker
 from models.users_model import User
-from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext
+from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext, SecretSantaMessageLog
 
 import random
 from typing import List
@@ -130,3 +130,26 @@ def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> s
         if len(channel_assignments) >= 2:
             return channel_assignments[1].receiver.discord_user_id
         raise ValueError(f"No second assignment found for user {giver_discord_id} in channel {channel_id}")
+
+def log_message_sent(discord_channel_id: int, discord_message_id: int, author_discord_id: int) -> None:
+    with session_maker() as session:
+        user = session.query(User).filter_by(discord_user_id=str(author_discord_id)).first()
+        if not user:
+            raise ValueError(f"User with discord_id {author_discord_id} not found in db")
+
+        log_entry = SecretSantaMessageLog(
+            origin_discord_channel_id=str(discord_channel_id),
+            discord_message_id=str(discord_message_id),
+            author=user
+        )
+        session.add(log_entry)
+        session.commit()
+
+def find_message_log_by_message_id(discord_message_id: int) -> dict:
+    with session_maker() as session:
+        log_entry = session.query(SecretSantaMessageLog).filter_by(discord_message_id=str(discord_message_id)).first()
+        info = {
+            "author_discord_id": log_entry.author.discord_user_id,
+            "origin_discord_channel_id": log_entry.origin_discord_channel_id
+        }
+        return info

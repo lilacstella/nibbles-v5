@@ -54,3 +54,12 @@ class SecretSantaAssignment(Base):
 
     def __repr__(self) -> str:
         return f"SecretSantaAssignment(id={self.id!r}, receiver_id={self.receiver_id!r}, gifter_id={self.gifter_id!r})"
+
+class SecretSantaMessageLog(Base):
+    __tablename__ = "secret_santa_message_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    origin_discord_channel_id: Mapped[str] = mapped_column(nullable=False)
+    discord_message_id: Mapped[str] = mapped_column(unique=True, nullable=False)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+
+    author: Mapped["User"] = relationship("User")
