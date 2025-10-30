@@ -157,7 +157,7 @@ class MsgRecipientButton(Button):
         # open a modal to collect the message to send
         user_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
         user = await get_or_fetch_member(interaction, int(user_id))
-        modal = MessageRecipientModal(title=f"Message your recipient {user.display_name}")
+        modal = MessageRecipientModal(user, title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
 
@@ -171,11 +171,11 @@ class MsgRecipientButton2(Button):
         # open a modal to collect the message to send
         user_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
         user = await get_or_fetch_member(interaction, int(user_id))
-        modal = MessageRecipientModal(title=f"Message your recipient {user.display_name}")
+        modal = MessageRecipientModal(user, title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
 
-class MessageRecipientModal(discord.ui.Modal, title="Message your recipient"):
+class MessageRecipientModal(discord.ui.Modal):
     # a multi-line text input for the message
     message = discord.ui.TextInput(
         label="Message",
@@ -185,6 +185,11 @@ class MessageRecipientModal(discord.ui.Modal, title="Message your recipient"):
         max_length=2000,
     )
 
+    def __init__(self, recipient_user: discord.User, title="Message your recipient"):
+        super().__init__(title=title)
+        self.recipient = recipient_user
+
+
     async def on_submit(self, interaction: discord.Interaction):
         # look up the assigned recipient for this channel and giver
         content = self.message.value.strip()
@@ -192,27 +197,15 @@ class MessageRecipientModal(discord.ui.Modal, title="Message your recipient"):
             await interaction.response.send_message("Message was empty.", ephemeral=True)
             return
 
-        recipient_discord_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
-        if not recipient_discord_id:
-            await interaction.response.send_message("Could not find your assigned recipient (no active game or you're not registered).", ephemeral=True)
-            return
-
-        try:
-            recipient_user = await interaction.client.fetch_user(int(recipient_discord_id))
-        except Exception:
-            await interaction.response.send_message("Failed to look up the recipient user on Discord.", ephemeral=True)
-            return
-
-        # send the DM as the bot; include a short header to indicate it's a Secret Santa message
         dm_content = f"## You have a message from your Secret Santa:\n\n{content}"
         try:
-            await recipient_user.send(dm_content)
+            await self.recipient.send(dm_content)
         except discord.HTTPException:
             await interaction.response.send_message("Failed to send DM — the recipient may have DMs disabled.", ephemeral=True)
             return
 
         # confirm to the sender (ephemeral so only they see it)
-        await interaction.response.send_message(f"Your message was sent to <@{recipient_discord_id}>.", ephemeral=True)
+        await interaction.response.send_message(f"Your message was sent to {self.recipient.mention}", ephemeral=True)
 
 
 class StatusPage(Container):
