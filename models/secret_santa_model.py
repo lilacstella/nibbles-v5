@@ -60,6 +60,7 @@ class SecretSantaMessageLog(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     origin_discord_channel_id: Mapped[str] = mapped_column(nullable=False)
     discord_message_id: Mapped[str] = mapped_column(unique=True, nullable=False)
+    to_gift_recipient: Mapped[bool] = mapped_column(nullable=False)
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
 
     author: Mapped["User"] = relationship("User")

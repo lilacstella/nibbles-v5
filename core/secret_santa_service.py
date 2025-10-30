@@ -131,7 +131,7 @@ def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> s
             return channel_assignments[1].receiver.discord_user_id
         raise ValueError(f"No second assignment found for user {giver_discord_id} in channel {channel_id}")
 
-def log_message_sent(discord_channel_id: int, discord_message_id: int, author_discord_id: int) -> None:
+def log_message_sent(discord_channel_id: int, discord_message_id: int, author_discord_id: int, to_gift_recipient: bool) -> None:
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=str(author_discord_id)).first()
         if not user:
@@ -140,7 +140,8 @@ def log_message_sent(discord_channel_id: int, discord_message_id: int, author_di
         log_entry = SecretSantaMessageLog(
             origin_discord_channel_id=str(discord_channel_id),
             discord_message_id=str(discord_message_id),
-            author=user
+            author=user,
+            to_gift_recipient=to_gift_recipient
         )
         session.add(log_entry)
         session.commit()

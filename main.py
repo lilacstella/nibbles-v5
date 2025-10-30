@@ -41,7 +41,7 @@ class Bot(commands.Bot):
                         return
                     except Exception as e:
                         # don't crash the bot on handler errors; log and continue
-                        print("Error in SecretSanta.handle_reply_to_bot_message:", e)
+                        print("Error in SecretSanta.on_reply_to_msg:", e)
 
         # otherwise, other on_message handlers
 

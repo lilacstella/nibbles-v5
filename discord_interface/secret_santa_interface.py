@@ -195,7 +195,7 @@ class MessageRecipientModal(discord.ui.Modal):
         dm_content = f"## You have a message from your <#{self.channel_id}> Secret Santa:\n\n{content}"
         try:
             message = await self.recipient.send(dm_content)
-            log_message_sent(self.channel_id, message.id, interaction.user.id)
+            log_message_sent(self.channel_id, message.id, interaction.user.id, to_gift_recipient=True)
         except discord.HTTPException:
             await interaction.response.send_message("Failed to send DM — the recipient may have DMs disabled.",
                                                     ephemeral=True)
@@ -259,7 +259,6 @@ class SecretSanta(commands.Cog):
 
         # check the logs of messages for the message that this is responding to, and the original
         # author of that message is the recipient of this message
-        replied_to_msg_id = message.reference.message_id
         log_entry = find_message_log_by_message_id(message.reference.message_id)
         if not log_entry:
             print("could not find message in db")
