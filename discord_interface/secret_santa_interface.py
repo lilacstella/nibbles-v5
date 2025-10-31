@@ -1,6 +1,7 @@
 from core.secret_santa_service import create_secret_santa_game, create_special_secret_santa_game, \
     does_secret_santa_game_exist, get_num_participants, is_crazy_mode, \
-    get_one_recipient_discord_id, get_second_recipient_discord_id, log_message_sent, find_message_log_by_message_id
+    get_one_recipient_discord_id, get_second_recipient_discord_id, log_message_sent, find_message_log_by_message_id, \
+    get_cogifter_for_recipient
 from main import auth_config
 from discord_interface.utils import get_or_fetch_user
 
@@ -169,6 +170,40 @@ class MsgRecipientButton2(Button):
         modal = MessageRecipientModal(interaction.channel_id, user, title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
+# will only exist in crazy mode
+class MsgCoGifterButton(Button):
+    def __init__(self):
+        super().__init__(label="Message your co-gifter 1",
+                         style=discord.ButtonStyle.gray,
+                         custom_id="message_co_gifter_1")
+
+    async def callback(self, interaction: discord.Interaction):
+        recipient_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        recipient = await get_or_fetch_user(interaction.client, int(recipient_id))
+        co_gifter_id = get_cogifter_for_recipient(interaction.channel_id, str(interaction.user.id), recipient_id)
+        co_gifter = await get_or_fetch_user(interaction.client, int(co_gifter_id))
+        modal = MsgCoGifterModal(interaction.channel_id,
+                                 recipient,
+                                 co_gifter
+                                 )
+        await interaction.response.send_modal(modal)
+
+class MsgCoGifterButton2(Button):
+    def __init__(self):
+        super().__init__(label="Message your co-gifter 2",
+                         style=discord.ButtonStyle.gray,
+                         custom_id="message_co_gifter_2")
+
+    async def callback(self, interaction: discord.Interaction):
+        recipient_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        recipient = await get_or_fetch_user(interaction.client, int(recipient_id))
+        co_gifter_id = get_cogifter_for_recipient(interaction.channel_id, str(interaction.user.id), recipient_id)
+        co_gifter = await get_or_fetch_user(interaction.client, int(co_gifter_id))
+        modal = MsgCoGifterModal(interaction.channel_id,
+                                 recipient,
+                                 co_gifter
+                                 )
+        await interaction.response.send_modal(modal)
 
 class MessageRecipientModal(discord.ui.Modal):
     # a multi-line text input for the message
@@ -192,7 +227,9 @@ class MessageRecipientModal(discord.ui.Modal):
             await interaction.response.send_message("Message was empty.", ephemeral=True)
             return
 
-        dm_content = f"## You have a message from your <#{self.channel_id}> Secret Santa:\n\n{content}"
+        dm_content = (f"### You have a message from your Secret Santa:\n"
+                      f"origin: <#{self.channel_id}>\n\n{content}\n"
+                      f"-# *Reply to this message to respond*")
         try:
             message = await self.recipient.send(dm_content)
             log_message_sent(self.channel_id, message.id, interaction.user.id, to_gift_recipient=True)
@@ -204,6 +241,44 @@ class MessageRecipientModal(discord.ui.Modal):
         # confirm to the sender (ephemeral so only they see it)
         await interaction.response.send_message(f"Your message was sent to {self.recipient.mention}", ephemeral=True)
 
+class MsgCoGifterModal(discord.ui.Modal):
+    def __init__(self, channel_id: int, recipient: discord.User, co_gifter_user: discord.User):
+        super().__init__(title="Message your co-gifter", custom_id="msg_co_gifter_modal")
+        self.message = discord.ui.TextInput(
+            label="Message",
+            style=discord.TextStyle.paragraph,
+            placeholder=f"Write an anonymous message to the cogifter of your recipient {recipient.display_name}",
+            required=True,
+            max_length=2000,
+            custom_id="msg_co_gifter_modal_input"
+        )
+        self.add_item(self.message)
+
+        self.recipient = recipient
+        self.co_gifter = co_gifter_user
+        self.channel_id = channel_id
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # look up the assigned co-gifter for this channel and giver
+        content = self.message.value.strip()
+        if not content:
+            await interaction.response.send_message("Message was empty.", ephemeral=True)
+            return
+
+        dm_content = (f"### You have a message from Secret Santa:\n"
+                      f"from: your co-gifter for {self.recipient.mention}\n"
+                      f"origin: <#{self.channel_id}>\n\n{content}\n"
+                      f"-# *Reply to this message to respond*")
+        try:
+            message = await self.co_gifter.send(dm_content)
+            log_message_sent(self.channel_id, message.id, interaction.user.id, to_gift_recipient=False)
+        except discord.HTTPException:
+            await interaction.response.send_message("Failed to send DM — the co-gifter may have DMs disabled.",
+                                                    ephemeral=True)
+            return
+
+        # confirm to the sender (ephemeral so only they see it)
+        await interaction.response.send_message(f"Your message was sent to {self.co_gifter.mention}", ephemeral=True)
 
 class StatusPage(Container):
     def __init__(self, channel_id, crazy_mode: bool = False):
@@ -218,11 +293,10 @@ class StatusPage(Container):
         )
         self.add_item(ActionRow(ShowRecipientButton()))
         if crazy_mode:
-            ar = ActionRow(MsgRecipientButton(), MsgRecipientButton2())
+            self.add_item(ActionRow(MsgRecipientButton(), MsgRecipientButton2()))
+            self.add_item(ActionRow(MsgCoGifterButton(), MsgCoGifterButton2()))
         else:
-            ar = ActionRow(MsgRecipientButton())
-        self.add_item(ar)
-
+            self.add_item(ActionRow(MsgRecipientButton()))
 
 class SecretSanta(commands.Cog):
     def __init__(self, bot):
@@ -265,9 +339,9 @@ class SecretSanta(commands.Cog):
             return
 
         user = await get_or_fetch_user(self.bot, int(log_entry['author_discord_id']))
-
+        from_field = message.author.mention if log_entry['to_gift_recipient'] else "co-gifter"
         dm_content = (f"## You have a reply to your message:\n"
-                      f"*from*: {message.author.mention}\n"
+                      f"*from*: {from_field}\n"
                       f"*originating from*: <#{log_entry['origin_discord_channel_id']}>\n\n"
                       f"{message.content.strip()}")
         try:
