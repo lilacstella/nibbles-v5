@@ -4,6 +4,12 @@ from discord.ext import commands
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+with open('config/env.toml', 'rb') as f:
+    env_config = tomllib.load(f)
+
+with open('config/auth.toml', 'rb') as f:
+    auth_config = tomllib.load(f)
+
 class Bot(commands.Bot):
     def __init__(self):
         super().__init__(
@@ -48,15 +54,12 @@ class Bot(commands.Bot):
     # the method to override in order to run whatever you need before your bot starts
     async def setup_hook(self):
         await self.load_extension("discord_interface.secret_santa_interface")
+        await self.load_extension("discord_interface.misc_interface")
         # print(self.tree)
         # print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
-        print(await self.tree.sync(guild=discord.Object(id='607298393370394625')))
-
-with open('config/env.toml', 'rb') as f:
-    env_config = tomllib.load(f)
-
-with open('config/auth.toml', 'rb') as f:
-    auth_config = tomllib.load(f)
+        # print(await self.tree.sync(guild=discord.Object(id='607298393370394625')))
+        if env_config['env'] == 'prod':
+            print(await self.tree.sync())
 
 engine = create_engine(env_config[env_config['env']]['connection_string'], echo=True)
 session_maker = sessionmaker(bind=engine)
