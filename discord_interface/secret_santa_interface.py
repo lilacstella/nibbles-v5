@@ -278,7 +278,7 @@ class MsgCoGifterModal(discord.ui.Modal):
             return
 
         # confirm to the sender (ephemeral so only they see it)
-        await interaction.response.send_message(f"Your message was sent to {self.co_gifter.mention}", ephemeral=True)
+        await interaction.response.send_message(f"Your message was sent to your co-gifter", ephemeral=True)
 
 class StatusPage(Container):
     def __init__(self, channel_id, crazy_mode: bool = False):
