@@ -81,7 +81,7 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="choose", description="View the secret santa session in this channel.")
+    @app_commands.command(name="choose", description="Have Nibbles choose between multiple options for you!")
     @discord.app_commands.describe(
         options='what would you like nibbles to choose from (comma separated)'
     )

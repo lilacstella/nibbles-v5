@@ -58,7 +58,8 @@ class Bot(commands.Bot):
         # print(self.tree)
         # print(await self.tree.sync(guild=discord.Object(id='805821298193465384')))
         # print(await self.tree.sync(guild=discord.Object(id='607298393370394625')))
-        if env_config['env'] == 'prod':
+        if env_config['env'] == 'prod' or env_config['sync']:
+            print("syncing commands globally")
             print(await self.tree.sync())
 
 engine = create_engine(env_config[env_config['env']]['connection_string'], echo=True)
