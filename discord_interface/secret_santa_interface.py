@@ -302,9 +302,14 @@ class SecretSanta(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @app_commands.command(name="secret-santa", description="View the secret santa session in this channel.")
-    @app_commands.guilds(607298393370394625, 805821298193465384)
+    @app_commands.command(name="secret-santa", description="Start or view a secret santa session in this channel.")
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, dms=False, private_channels=True)
     async def secret_santa(self, interaction: discord.Interaction):
+        # prevent use in one-on-one DMs but allow group chats
+        if interaction.channel and isinstance(interaction.channel, discord.DMChannel):
+            await interaction.response.send_message("Cannot start a secret santa session in this channel.", ephemeral=True)
+            return
         view = LayoutView(timeout=None)
         if does_secret_santa_game_exist(interaction.channel_id):
             page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))

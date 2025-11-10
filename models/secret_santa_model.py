@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 class SecretSantaContext(Base):
     __tablename__ = "secret_santa_contexts"
     id: Mapped[int] = mapped_column(primary_key=True)
-    guild_id: Mapped[str] = mapped_column(unique=True)
+    guild_id: Mapped[str] = mapped_column(unique=False)
     channel_id: Mapped[str] = mapped_column(unique=True, nullable=False)
     crazy_mode: Mapped[bool] = mapped_column(default=False, nullable=False)
 
