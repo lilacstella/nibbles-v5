@@ -44,20 +44,25 @@ def _render_choice_output(picked: str, chosen: list[str], remaining: list[str]) 
     """
     messages = _make_choice_phrases(picked)
     if remaining:
-        messages.append(f"Why would you choose {secrets.choice(remaining)}, choose __{picked}__!")
+        messages.append(f"Why would you choose {secrets.choice(remaining)}, choose **__{picked}__**!")
     history = _choice_history(chosen, remaining)
     return f"{secrets.choice(messages)}\n\n-# {history}"
 
 
 class RerollButton(Button):
-    def __init__(self, choices: list[str], chosen: list[str]):
+    def __init__(self, user: discord.User, choices: list[str], chosen: list[str]):
         super().__init__(emoji="🔁", style=discord.ButtonStyle.primary)
+        self.user = user
         self.choices = choices
         self.chosen = chosen
 
     async def callback(self, interaction: discord.Interaction) -> None:
         if len(self.choices) == 0:
             await interaction.response.defer()
+            return
+
+        if interaction.user != self.user:
+            await interaction.response.send_message("Only the user who invoked the command can reroll!", ephemeral=True)
             return
 
         # pick a new choice and update shared state
@@ -100,7 +105,7 @@ class Misc(commands.Cog):
         view = View(timeout=None)
         chosen_list = [picked]
         # give the button a copy of the remaining choices so it can mutate them independently
-        view.add_item(RerollButton(choices.copy(), chosen_list))
+        view.add_item(RerollButton(interaction.user, choices, chosen_list))
 
         content = _render_choice_output(picked, chosen_list, choices)
 
