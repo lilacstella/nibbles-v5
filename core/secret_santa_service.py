@@ -115,6 +115,18 @@ def  get_one_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str
         
         raise ValueError(f"No assignment found for user {giver_discord_id} in channel {channel_id}")
 
+def get_cogifter_for_recipient(channel_id: int, gifter_discord_id: str, recipient_discord_id: str) -> str:
+    with session_maker() as session:
+        user = session.query(User).filter_by(discord_user_id=recipient_discord_id).first()
+        if not user:
+            raise ValueError(f"User with discord_id {recipient_discord_id} not found in db")
+
+        for assignment in user.receiving_from:
+            if assignment.context.channel_id == str(channel_id) and assignment.gifter.discord_user_id != gifter_discord_id:
+                return assignment.gifter.discord_user_id
+
+        raise ValueError(f"No second gifter found for recipient {recipient_discord_id} in channel {channel_id}")
+
 def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str:
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=giver_discord_id).first()
@@ -151,6 +163,7 @@ def find_message_log_by_message_id(discord_message_id: int) -> dict:
         log_entry = session.query(SecretSantaMessageLog).filter_by(discord_message_id=str(discord_message_id)).first()
         info = {
             "author_discord_id": log_entry.author.discord_user_id,
-            "origin_discord_channel_id": log_entry.origin_discord_channel_id
+            "origin_discord_channel_id": log_entry.origin_discord_channel_id,
+            "to_gift_recipient": log_entry.to_gift_recipient
         }
         return info
