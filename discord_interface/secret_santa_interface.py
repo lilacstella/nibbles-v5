@@ -59,10 +59,9 @@ class Start(Button):
             secret_santa_lobbies[interaction.channel_id].special_start()
         else:
             secret_santa_lobbies[interaction.channel_id].start()
-        view = LayoutView(timeout=0)
-        view.add_item(secret_santa_lobbies[interaction.channel_id])
-        secret_santa_lobbies[interaction.channel_id].set_expire()
-        secret_santa_lobbies[interaction.channel_id].update()
+        view = LayoutView(timeout=None)
+        page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))
+        view.add_item(page)
         await interaction.response.edit_message(view=view)
         del secret_santa_lobbies[interaction.channel_id]
 
