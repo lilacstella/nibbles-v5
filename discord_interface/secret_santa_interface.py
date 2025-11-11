@@ -43,29 +43,22 @@ class Leave(Button):
 
 
 class Start(Button):
-    def __init__(self):
-        super().__init__(emoji="🎅", label="Start",
+    def __init__(self, plus: bool = False):
+        self.plus = plus
+        if plus:
+            label = "Start+"
+        else:
+            label = "Start"
+
+        super().__init__(emoji="🎅", label=label,
                          style=discord.ButtonStyle.primary,
                          custom_id="secret_santa_start")
 
     async def callback(self, interaction: discord.Interaction):
-        secret_santa_lobbies[interaction.channel_id].start()
-        view = LayoutView(timeout=0)
-        view.add_item(secret_santa_lobbies[interaction.channel_id])
-        secret_santa_lobbies[interaction.channel_id].set_expire()
-        secret_santa_lobbies[interaction.channel_id].update()
-        await interaction.response.edit_message(view=view)
-        del secret_santa_lobbies[interaction.channel_id]
-
-
-class StartPlus(Button):
-    def __init__(self):
-        super().__init__(emoji="🎅", label="Start+",
-                         style=discord.ButtonStyle.primary,
-                         custom_id="secret_santa_start_plus")
-
-    async def callback(self, interaction: discord.Interaction):
-        secret_santa_lobbies[interaction.channel_id].special_start()
+        if self.plus:
+            secret_santa_lobbies[interaction.channel_id].special_start()
+        else:
+            secret_santa_lobbies[interaction.channel_id].start()
         view = LayoutView(timeout=0)
         view.add_item(secret_santa_lobbies[interaction.channel_id])
         secret_santa_lobbies[interaction.channel_id].set_expire()
@@ -110,7 +103,7 @@ class LobbyPage(Container):
         self.add_item(ar)
         buttons = [Start()]
         if str(self.channel_id) in auth_config['discord']['special_secret_santa_channels']:
-            buttons.append(StartPlus())
+            buttons.append(Start(plus=True))
 
         if self.expire:
             for button in buttons:
