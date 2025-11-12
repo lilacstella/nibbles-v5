@@ -55,6 +55,7 @@ class Bot(commands.Bot):
     async def setup_hook(self):
         await self.load_extension("discord_interface.secret_santa_interface")
         await self.load_extension("discord_interface.misc_interface")
+        await self.load_extension("discord_interface.gamble_interface")
 
         if env_config['env'] == 'prod' or env_config['sync']:
             print("syncing commands globally")
