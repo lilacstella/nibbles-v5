@@ -52,7 +52,7 @@ class Start(Button):
 
         super().__init__(emoji="🎅", label=label,
                          style=discord.ButtonStyle.primary,
-                         custom_id="secret_santa_start")
+                         custom_id=f"secret_santa_start_{plus}")
 
     async def callback(self, interaction: discord.Interaction):
         if self.plus:
@@ -141,7 +141,7 @@ class MsgRecipientButton(Button):
         self.order = order
         super().__init__(label=f"Message your recipient {order}",
                          style=discord.ButtonStyle.primary,
-                         custom_id="message_recipient")
+                         custom_id=f"message_recipient_{order}")
 
     async def callback(self, interaction: discord.Interaction):
         # open a modal to collect the message to send
@@ -160,7 +160,7 @@ class MsgCoGifterButton(Button):
         self.order = order
         super().__init__(label=f"Message your co-gifter {order}",
                          style=discord.ButtonStyle.gray,
-                         custom_id="message_co_gifter")
+                         custom_id=f"message_co_gifter_{order}")
 
     async def callback(self, interaction: discord.Interaction):
         if self.order == 1:
