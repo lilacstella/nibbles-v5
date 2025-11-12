@@ -89,7 +89,10 @@ def get_num_participants(channel_id: int) -> int:
         game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
         if not game:
             return 0
-        count = session.query(func.count(func.distinct(SecretSantaAssignment.gifter_id))).scalar()
+
+        count = session.query(
+            func.count(func.distinct(SecretSantaAssignment.gifter_id))
+        ).filter(SecretSantaAssignment.context_id == game.id).scalar()
         return count
 
 def is_crazy_mode(channel_id: int) -> bool:

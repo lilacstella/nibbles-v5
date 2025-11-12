@@ -43,29 +43,22 @@ class Leave(Button):
 
 
 class Start(Button):
-    def __init__(self):
-        super().__init__(emoji="🎅", label="Start",
+    def __init__(self, plus: bool = False):
+        self.plus = plus
+        if plus:
+            label = "Start+"
+        else:
+            label = "Start"
+
+        super().__init__(emoji="🎅", label=label,
                          style=discord.ButtonStyle.primary,
-                         custom_id="secret_santa_start")
+                         custom_id=f"secret_santa_start_{plus}")
 
     async def callback(self, interaction: discord.Interaction):
-        secret_santa_lobbies[interaction.channel_id].start()
-        view = LayoutView(timeout=0)
-        view.add_item(secret_santa_lobbies[interaction.channel_id])
-        secret_santa_lobbies[interaction.channel_id].set_expire()
-        secret_santa_lobbies[interaction.channel_id].update()
-        await interaction.response.edit_message(view=view)
-        del secret_santa_lobbies[interaction.channel_id]
-
-
-class StartPlus(Button):
-    def __init__(self):
-        super().__init__(emoji="🎅", label="Start+",
-                         style=discord.ButtonStyle.primary,
-                         custom_id="secret_santa_start_plus")
-
-    async def callback(self, interaction: discord.Interaction):
-        secret_santa_lobbies[interaction.channel_id].special_start()
+        if self.plus:
+            secret_santa_lobbies[interaction.channel_id].special_start()
+        else:
+            secret_santa_lobbies[interaction.channel_id].start()
         view = LayoutView(timeout=0)
         view.add_item(secret_santa_lobbies[interaction.channel_id])
         secret_santa_lobbies[interaction.channel_id].set_expire()
@@ -110,7 +103,7 @@ class LobbyPage(Container):
         self.add_item(ar)
         buttons = [Start()]
         if str(self.channel_id) in auth_config['discord']['special_secret_santa_channels']:
-            buttons.append(StartPlus())
+            buttons.append(Start(plus=True))
 
         if self.expire:
             for button in buttons:
@@ -144,66 +137,43 @@ class ShowRecipientButton(Button):
 
 
 class MsgRecipientButton(Button):
-    def __init__(self):
-        super().__init__(label="Message your recipient",
+    def __init__(self, order: int = 1):
+        self.order = order
+        super().__init__(label=f"Message your recipient {order}",
                          style=discord.ButtonStyle.primary,
-                         custom_id="message_recipient_1")
+                         custom_id=f"message_recipient_{order}")
 
     async def callback(self, interaction: discord.Interaction):
         # open a modal to collect the message to send
-        user_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        if self.order == 1:
+            user_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        else:
+            user_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
         user = await get_or_fetch_user(interaction.client, int(user_id))
         modal = MessageRecipientModal(interaction.channel_id, user, title=f"Message your recipient {user.display_name}")
         await interaction.response.send_modal(modal)
 
-
-class MsgRecipientButton2(Button):
-    def __init__(self):
-        super().__init__(label="Message your 2nd recipient",
-                         style=discord.ButtonStyle.primary,
-                         custom_id="message_recipient_2")
-
-    async def callback(self, interaction: discord.Interaction):
-        # open a modal to collect the message to send
-        user_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
-        user = await get_or_fetch_user(interaction.client, int(user_id))
-        modal = MessageRecipientModal(interaction.channel_id, user, title=f"Message your recipient {user.display_name}")
-        await interaction.response.send_modal(modal)
 
 # will only exist in crazy mode
 class MsgCoGifterButton(Button):
-    def __init__(self):
-        super().__init__(label="Message your co-gifter 1",
+    def __init__(self, order: int):
+        self.order = order
+        super().__init__(label=f"Message your co-gifter {order}",
                          style=discord.ButtonStyle.gray,
-                         custom_id="message_co_gifter_1")
+                         custom_id=f"message_co_gifter_{order}")
 
     async def callback(self, interaction: discord.Interaction):
-        recipient_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        if self.order == 1:
+            recipient_id = get_one_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
+        else:
+            recipient_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
         recipient = await get_or_fetch_user(interaction.client, int(recipient_id))
         co_gifter_id = get_cogifter_for_recipient(interaction.channel_id, str(interaction.user.id), recipient_id)
         co_gifter = await get_or_fetch_user(interaction.client, int(co_gifter_id))
-        modal = MsgCoGifterModal(interaction.channel_id,
-                                 recipient,
-                                 co_gifter
-                                 )
+
+        modal = MsgCoGifterModal(interaction.channel_id, recipient, co_gifter)
         await interaction.response.send_modal(modal)
 
-class MsgCoGifterButton2(Button):
-    def __init__(self):
-        super().__init__(label="Message your co-gifter 2",
-                         style=discord.ButtonStyle.gray,
-                         custom_id="message_co_gifter_2")
-
-    async def callback(self, interaction: discord.Interaction):
-        recipient_id = get_second_recipient_discord_id(interaction.channel_id, str(interaction.user.id))
-        recipient = await get_or_fetch_user(interaction.client, int(recipient_id))
-        co_gifter_id = get_cogifter_for_recipient(interaction.channel_id, str(interaction.user.id), recipient_id)
-        co_gifter = await get_or_fetch_user(interaction.client, int(co_gifter_id))
-        modal = MsgCoGifterModal(interaction.channel_id,
-                                 recipient,
-                                 co_gifter
-                                 )
-        await interaction.response.send_modal(modal)
 
 class MessageRecipientModal(discord.ui.Modal):
     # a multi-line text input for the message
@@ -293,8 +263,8 @@ class StatusPage(Container):
         )
         self.add_item(ActionRow(ShowRecipientButton()))
         if crazy_mode:
-            self.add_item(ActionRow(MsgRecipientButton(), MsgRecipientButton2()))
-            self.add_item(ActionRow(MsgCoGifterButton(), MsgCoGifterButton2()))
+            self.add_item(ActionRow(MsgRecipientButton(1), MsgRecipientButton(2)))
+            self.add_item(ActionRow(MsgCoGifterButton(1), MsgCoGifterButton(2)))
         else:
             self.add_item(ActionRow(MsgRecipientButton()))
 
