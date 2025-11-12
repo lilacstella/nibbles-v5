@@ -4,7 +4,6 @@ from models.secret_santa_model import SecretSantaAssignment, SecretSantaContext,
 
 import random
 from typing import List
-from sqlalchemy import func
 
 def create_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int]) -> None:
     """
@@ -25,6 +24,7 @@ def create_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: se
             a = SecretSantaAssignment(game, users[i], users[(i + 1) % len(users)])
             session.add(a)
         session.commit()
+
 
 def create_special_secret_santa_game(guild_id: int | None, channel_id: int, user_ids: set[int]) -> None:
     with session_maker() as session:
@@ -78,22 +78,30 @@ def does_secret_santa_game_exist(channel_id: int) -> bool:
         return existing_game is not None
 
 
-def get_num_participants(channel_id: int) -> int:
+def get_participants(channel_id: int) -> list[str]:
     """
-    Returns the number of participants in the Secret Santa game in the specified channel.
+    Returns a list of unique participant Discord IDs (gifters) for the Secret Santa game
+    in the specified channel.
 
     :param channel_id: Discord channel ID
-    :return: Number of participants
+    :return: List of Discord user ID strings of participants (gifters)
     """
     with session_maker() as session:
         game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
         if not game:
-            return 0
+            return []
 
-        count = session.query(
-            func.count(func.distinct(SecretSantaAssignment.gifter_id))
-        ).filter(SecretSantaAssignment.context_id == game.id).scalar()
-        return count
+        # Query the distinct discord_user_id values for Users who are gifters in this game
+        rows = (
+            session.query(User.discord_user_id)
+            .join(SecretSantaAssignment, SecretSantaAssignment.gifter_id == User.id)
+            .filter(SecretSantaAssignment.context_id == game.id)
+            .distinct()
+            .all()
+        )
+
+        return [r[0] for r in rows]
+
 
 def is_crazy_mode(channel_id: int) -> bool:
     """
@@ -118,6 +126,7 @@ def  get_one_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str
         
         raise ValueError(f"No assignment found for user {giver_discord_id} in channel {channel_id}")
 
+
 def get_cogifter_for_recipient(channel_id: int, gifter_discord_id: str, recipient_discord_id: str) -> str:
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=recipient_discord_id).first()
@@ -129,6 +138,7 @@ def get_cogifter_for_recipient(channel_id: int, gifter_discord_id: str, recipien
                 return assignment.gifter.discord_user_id
 
         raise ValueError(f"No second gifter found for recipient {recipient_discord_id} in channel {channel_id}")
+
 
 def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> str:
     with session_maker() as session:
@@ -146,6 +156,7 @@ def get_second_recipient_discord_id(channel_id: int, giver_discord_id: str) -> s
             return channel_assignments[1].receiver.discord_user_id
         raise ValueError(f"No second assignment found for user {giver_discord_id} in channel {channel_id}")
 
+
 def log_message_sent(discord_channel_id: int, discord_message_id: int, author_discord_id: int, to_gift_recipient: bool) -> None:
     with session_maker() as session:
         user = session.query(User).filter_by(discord_user_id=str(author_discord_id)).first()
@@ -160,6 +171,7 @@ def log_message_sent(discord_channel_id: int, discord_message_id: int, author_di
         )
         session.add(log_entry)
         session.commit()
+
 
 def find_message_log_by_message_id(discord_message_id: int) -> dict:
     with session_maker() as session:

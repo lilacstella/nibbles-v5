@@ -1,5 +1,5 @@
 from core.secret_santa_service import create_secret_santa_game, create_special_secret_santa_game, \
-    does_secret_santa_game_exist, get_num_participants, is_crazy_mode, \
+    does_secret_santa_game_exist, get_participants, is_crazy_mode, \
     get_one_recipient_discord_id, get_second_recipient_discord_id, log_message_sent, find_message_log_by_message_id, \
     get_cogifter_for_recipient
 from main import auth_config
@@ -60,7 +60,9 @@ class Start(Button):
         else:
             secret_santa_lobbies[interaction.channel_id].start()
         view = LayoutView(timeout=None)
-        page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))
+
+        page = StatusPage(interaction.channel_id,
+                          crazy_mode=is_crazy_mode(interaction.channel_id))
         view.add_item(page)
         await interaction.response.edit_message(view=view)
         del secret_santa_lobbies[interaction.channel_id]
@@ -110,6 +112,7 @@ class LobbyPage(Container):
 
         self.add_item(ActionRow(*buttons))
 
+
 # ====================================================
 # POST START GAME
 # ====================================================
@@ -138,7 +141,10 @@ class ShowRecipientButton(Button):
 class MsgRecipientButton(Button):
     def __init__(self, order: int = 1):
         self.order = order
-        super().__init__(label=f"Message your recipient {order}",
+        label = "Message your recipient"
+        if order > 1:
+            label += f" {order}"
+        super().__init__(label=label,
                          style=discord.ButtonStyle.primary,
                          custom_id=f"message_recipient_{order}")
 
@@ -210,6 +216,7 @@ class MessageRecipientModal(discord.ui.Modal):
         # confirm to the sender (ephemeral so only they see it)
         await interaction.response.send_message(f"Your message was sent to {self.recipient.mention}", ephemeral=True)
 
+
 class MsgCoGifterModal(discord.ui.Modal):
     def __init__(self, channel_id: int, recipient: discord.User, co_gifter_user: discord.User):
         super().__init__(title="Message your co-gifter", custom_id="msg_co_gifter_modal")
@@ -249,23 +256,28 @@ class MsgCoGifterModal(discord.ui.Modal):
         # confirm to the sender (ephemeral so only they see it)
         await interaction.response.send_message(f"Your message was sent to your co-gifter", ephemeral=True)
 
+
 class StatusPage(Container):
     def __init__(self, channel_id, crazy_mode: bool = False):
         super().__init__()
         self.channel_id = channel_id
         self.crazy_mode = crazy_mode
-        num = get_num_participants(channel_id)
-        self.add_item(
-            TextDisplay(
-                f"## Your Secret Santa has {num} participants"
-            )
-        )
+
+        participant_ids = get_participants(channel_id)
+        participant_mentions = [f"<@{pid}>" for pid in participant_ids]
+
+        self.add_item(TextDisplay(f"## Your Secret Santa has {len(participant_mentions)} participants"))
+
+        lines = "\n".join(f"- {name}" for name in participant_mentions)
+        self.add_item(TextDisplay(lines))
+
         self.add_item(ActionRow(ShowRecipientButton()))
         if crazy_mode:
             self.add_item(ActionRow(MsgRecipientButton(1), MsgRecipientButton(2)))
             self.add_item(ActionRow(MsgCoGifterButton(1), MsgCoGifterButton(2)))
         else:
             self.add_item(ActionRow(MsgRecipientButton()))
+
 
 class SecretSanta(commands.Cog):
     def __init__(self, bot):
@@ -277,7 +289,8 @@ class SecretSanta(commands.Cog):
     async def secret_santa(self, interaction: discord.Interaction):
         # prevent use in one-on-one DMs but allow group chats
         if interaction.channel and isinstance(interaction.channel, discord.DMChannel):
-            await interaction.response.send_message("Cannot start a secret santa session in this channel.", ephemeral=True)
+            await interaction.response.send_message("Cannot start a secret santa session in this channel.",
+                                                    ephemeral=True)
             return
         view = LayoutView(timeout=None)
         if does_secret_santa_game_exist(interaction.channel_id):
