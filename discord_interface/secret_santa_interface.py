@@ -95,8 +95,11 @@ class LobbyPage(Container):
     def update(self):
         self.clear_items()
         participant_mentions = [f"<@{user_id}>" for user_id in self.participants]
-        self.add_item(TextDisplay("## Nice List:"))
-        self.add_item(TextDisplay("\n".join(participant_mentions) if participant_mentions else "No participants yet."))
+        self.add_item(TextDisplay("## Secret Santa lobby:"))
+        section = Section(TextDisplay("\n".join(participant_mentions) if participant_mentions else "No participants yet."),
+                          accessory=Thumbnail('https://i.postimg.cc/FHvRcPcy/santa-nibbles.png'))
+        self.add_item(section)
+
         ar = ActionRow(Join(), Leave())
         if self.expire:
             for children in ar.walk_children():
@@ -269,7 +272,8 @@ class StatusPage(Container):
         self.add_item(TextDisplay(f"## Your Secret Santa has {len(participant_mentions)} participants"))
 
         lines = "\n".join(f"- {name}" for name in participant_mentions)
-        self.add_item(TextDisplay(lines))
+        self.add_item(Section(TextDisplay(lines),
+                              accessory=Thumbnail('https://i.postimg.cc/FHvRcPcy/santa-nibbles.png')))
 
         self.add_item(ActionRow(ShowRecipientButton()))
         if crazy_mode:
