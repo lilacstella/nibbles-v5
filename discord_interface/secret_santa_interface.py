@@ -1,5 +1,5 @@
 from core.secret_santa_service import create_secret_santa_game, create_special_secret_santa_game, \
-    does_secret_santa_game_exist, get_participants, is_crazy_mode, \
+    does_secret_santa_game_exist, delete_secret_santa_game, get_participants, is_crazy_mode, \
     get_one_recipient_discord_id, get_second_recipient_discord_id, log_message_sent, find_message_log_by_message_id, \
     get_cogifter_for_recipient
 from main import auth_config
@@ -13,6 +13,63 @@ from discord.ext import commands
 # channel_id: LobbyPage
 secret_santa_lobbies: dict[int, "LobbyPage"] = {}
 
+# common buttons
+class Delete(Button):
+    def __init__(self):
+        super().__init__(emoji="🗑️", label="End game",
+                         style=discord.ButtonStyle.danger,
+                         custom_id="secret_santa_delete")
+
+    async def callback(self, interaction: discord.Interaction):
+        # Check for Manage Events permission
+        if interaction.guild and interaction.user.resolved_permissions:
+            perms = interaction.user.resolved_permissions
+            if not perms.manage_events:
+                await interaction.response.send_message(
+                    "You need the 'Manage Events' permission to end a Secret Santa game.",
+                    ephemeral=True
+                )
+                return
+
+        if interaction.channel_id in secret_santa_lobbies:
+            secret_santa_lobbies[interaction.channel_id].set_expire()
+            secret_santa_lobbies[interaction.channel_id].update()
+            view = LayoutView(timeout=None)
+            view.add_item(secret_santa_lobbies[interaction.channel_id])
+            await interaction.response.edit_message(view=view)
+
+            del secret_santa_lobbies[interaction.channel_id]
+            return
+
+        delete_secret_santa_game(interaction.channel_id)
+        await interaction.response.send_message(content="This secret santa game has been ended.")
+
+class FAQ(Button):
+    def __init__(self):
+        super().__init__(emoji="❔", label="how to use",
+                         style=discord.ButtonStyle.gray,
+                         custom_id="secret_santa_faq")
+
+    async def callback(self, interaction: discord.Interaction):
+        help_text = (
+            "### how to use </secret-santa:1437581717790658662>\n"
+            "1. Bring up the lobby page by calling </secret-santa:1437581717790658662>\n"
+            "1. Get everyone to join by clicking the join button\n"
+            "1. Once everyone is in, click the 'Start' button. Now, Nibbles will automatically assign everyone a random"
+            " recipient to gift to.\n"
+            '1. After the game starts, you can click "Show my recipient" to see who you are gifting to.\n'
+            "1. You can also message your recipient anonymously using the 'Message your recipient' button.\n"
+            "1. When you receive a message, you can use the discord reply button to answer the query. "
+            "You can see the message successfully go through when you get a confirmation. \n"
+            "\n"
+            "### Notes:\n"
+            "A user with the permission Manage Event is needed to start and end secret santa sessions.\n"
+            "A secret santa game belongs to a specific channel, and if you wish to bring up the same game again,"
+            " just call </secret-santa:1437581717790658662> again in the channel in which it was started.\n"
+            "This command can be ran in group DMs as well as guild channels.\n"
+            "\n"
+        )
+        await interaction.response.send_message(help_text, ephemeral=True)
 
 # Lobby buttons
 class Join(Button):
@@ -55,6 +112,16 @@ class Start(Button):
                          custom_id=f"secret_santa_start_{plus}")
 
     async def callback(self, interaction: discord.Interaction):
+        # Check for Manage Events permission
+        if interaction.guild and interaction.user.resolved_permissions:
+            perms = interaction.user.resolved_permissions
+            if not perms.manage_events:
+                await interaction.response.send_message(
+                    "You need the 'Manage Events' permission to end a Secret Santa game.",
+                    ephemeral=True
+                )
+                return
+
         if self.plus:
             secret_santa_lobbies[interaction.channel_id].special_start()
         else:
@@ -66,31 +133,6 @@ class Start(Button):
         view.add_item(page)
         await interaction.response.edit_message(view=view)
         del secret_santa_lobbies[interaction.channel_id]
-
-class FAQ(Button):
-    def __init__(self):
-        super().__init__(emoji="❔", label="how to use",
-                         style=discord.ButtonStyle.gray,
-                         custom_id="secret_santa_faq")
-
-    async def callback(self, interaction: discord.Interaction):
-        help_text = (
-            "### how to use </secret-santa:1437581717790658662>\n"
-            "1. Bring up the lobby page by calling </secret-santa:1437581717790658662>\n"
-            "1. Get everyone to join by clicking the join button\n"
-            "1. Once everyone is in, click the 'Start' button. Now, Nibbles will automatically assign everyone a random"
-            " recipient to gift to.\n"
-            '1. After the game starts, you can click "Show my recipient" to see who you are gifting to.\n'
-            "1. You can also message your recipient anonymously using the 'Message your recipient' button.\n"
-            "1. When you receive a message, you can use the discord reply button to answer the query. "
-            "You can see the message successfully go through when you get a confirmation. \n"
-            "\n"
-            "A secret santa game belongs to a specific channel, and if you wish to bring up the same game again,"
-            " just call </secret-santa:1437581717790658662> again in the channel in which it was started.\n"
-            "This command can be ran in group DMs as well as guild channels.\n"
-            "\n"
-        )
-        await interaction.response.send_message(help_text, ephemeral=True)
 
 # used for keeping track of a game before it starts
 class LobbyPage(Container):
@@ -129,9 +171,10 @@ class LobbyPage(Container):
             for children in ar.walk_children():
                 children.disabled = True
         self.add_item(ar)
-        buttons = [Start()]
+        buttons: list[Button] = [Start()]
         if str(self.channel_id) in auth_config['discord']['special_secret_santa_channels']:
             buttons.append(Start(plus=True))
+        buttons.append(Delete())
 
         if self.expire:
             for button in buttons:
@@ -305,6 +348,7 @@ class StatusPage(Container):
             self.add_item(ActionRow(MsgCoGifterButton(1), MsgCoGifterButton(2)))
         else:
             self.add_item(ActionRow(MsgRecipientButton()))
+        self.add_item(ActionRow(Delete()))
 
 
 class SecretSanta(commands.Cog):

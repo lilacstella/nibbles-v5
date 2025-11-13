@@ -228,3 +228,16 @@ def find_message_log_by_message_id(discord_message_id: int) -> dict:
             "to_gift_recipient": log_entry.to_gift_recipient
         }
         return info
+
+def delete_secret_santa_game(channel_id: int) -> None:
+    """
+    Deletes the Secret Santa game and all associated assignments and logs from the specified channel.
+
+    :param channel_id: Discord channel ID
+    """
+    with session_maker() as session:
+        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        if game:
+            session.query(SecretSantaMessageLog).filter_by(origin_discord_channel_id=str(channel_id)).delete()
+            session.delete(game)
+            session.commit()
