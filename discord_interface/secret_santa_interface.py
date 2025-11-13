@@ -51,9 +51,10 @@ class FAQ(Button):
                          custom_id="secret_santa_faq")
 
     async def callback(self, interaction: discord.Interaction):
+        command_mention = '</secret-santa:1437581717790658662>'
         help_text = (
-            "### how to use </secret-santa:1437581717790658662>\n"
-            "1. Bring up the lobby page by calling </secret-santa:1437581717790658662>\n"
+            f"### how to use {command_mention}\n"
+            f"1. Bring up the lobby page by calling {command_mention}\n"
             "1. Get everyone to join by clicking the join button\n"
             "1. Once everyone is in, click the 'Start' button. Now, Nibbles will automatically assign everyone a random"
             " recipient to gift to.\n"
