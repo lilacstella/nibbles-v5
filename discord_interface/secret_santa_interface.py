@@ -7,7 +7,7 @@ from discord_interface.utils import get_or_fetch_user
 
 import discord
 from discord import app_commands
-from discord.ui import Button, LayoutView, ActionRow, TextDisplay, Container
+from discord.ui import Button, LayoutView, ActionRow, TextDisplay, Container, Thumbnail, Section
 from discord.ext import commands
 
 # channel_id: LobbyPage
@@ -67,6 +67,26 @@ class Start(Button):
         await interaction.response.edit_message(view=view)
         del secret_santa_lobbies[interaction.channel_id]
 
+class FAQ(Button):
+    def __init__(self):
+        super().__init__(emoji="❔", label="how to use",
+                         style=discord.ButtonStyle.gray,
+                         custom_id="secret_santa_faq")
+
+    async def callback(self, interaction: discord.Interaction):
+        help_text = (
+            "### how to use </secret-santa:1437581717790658662>\n"
+            "1. Bring up the lobby page by calling </secret-santa:1437581717790658662>\n"
+            "1. Get everyone to join by clicking the join button\n"
+            "1. Once everyone is in, click the 'Start' button. Now, Nibbles will automatically assign everyone a random"
+            " recipient to gift to.\n"
+            '1. After the game starts, you can click "Show my recipient" to see who you are gifting to.\n'
+            "1. You can also message your recipient anonymously using the 'Message your recipient' button.\n"
+            "1. When you receive a message, you can use the discord reply button to answer the query. "
+            "You can see the message successfully go through when you get a confirmation. \n"
+            "\n"
+        )
+        await interaction.response.send_message(help_text, ephemeral=True)
 
 # used for keeping track of a game before it starts
 class LobbyPage(Container):
@@ -301,6 +321,7 @@ class SecretSanta(commands.Cog):
             page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))
             view.add_item(page)
             await interaction.response.send_message(view=view, ephemeral=True)
+            view.add_item(ActionRow(FAQ()))
             return
 
         if interaction.channel_id in secret_santa_lobbies:
@@ -309,6 +330,7 @@ class SecretSanta(commands.Cog):
             secret_santa_lobbies[interaction.channel_id] = page = LobbyPage(str(interaction.guild_id),
                                                                             str(interaction.channel_id))
         view.add_item(page)
+        view.add_item(ActionRow(FAQ()))
 
         await interaction.response.send_message(view=view)
 
