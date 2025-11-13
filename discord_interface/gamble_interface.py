@@ -20,7 +20,11 @@ class Gamble(commands.Cog):
 
     @app_commands.command(name="spin", description="Spin the wheel once a day for nom noms! (Jackpot of 10,000)")
     @app_commands.allowed_installs(guilds=True, users=False)
-    async def spin(self, interaction: discord.Interaction):
+    async def spin(self, interaction: discord.Interaction) -> None:
+        """
+        Spin the wheel of fortune once per day for nom noms.
+        :param interaction: discord interaction to get more data and respond to
+        """
         user = interaction.user
         if user.id in self.spun_today:
             await interaction.response.send_message("You have already spun the wheel today. Please try again tomorrow!",
@@ -66,6 +70,9 @@ class Gamble(commands.Cog):
 
     @tasks.loop(time=datetime.time(hour=3, minute=30, tzinfo=pytz.timezone('America/Chicago')))
     async def reset_spun_today(self):
+        """
+        Resets the spun_today set every day at 3:30 AM Central Time.
+        """
         self.spun_today.clear()
 
 
