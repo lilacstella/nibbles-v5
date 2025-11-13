@@ -6,7 +6,7 @@ import pytz
 import secrets
 import asyncio
 
-from core.transaction_service import add_user_nomnoms
+from core.transaction_service import get_user_nomnoms, add_user_nomnoms
 
 
 class Gamble(commands.Cog):
@@ -18,11 +18,37 @@ class Gamble(commands.Cog):
     def cog_unload(self):
         self.reset_spun_today.cancel()
 
-    @app_commands.command(name="spin", description="Spin the wheel once a day for nom noms! (Jackpot of 10,000)")
+    @app_commands.command()
+    @app_commands.allowed_installs(guilds=True, users=True)
+    @app_commands.allowed_contexts(guilds=True, private_channels=True, dms=True)
+    async def balance(self, interaction: discord.Interaction):
+        """
+        Check your nom noms balance.
+        :param interaction: discord interaction
+        """
+        user = interaction.user
+        balance = get_user_nomnoms(user.id)
+
+        if hasattr(user, 'guild_avatar') and user.guild_avatar:
+            thumbnail_url = user.guild_avatar.url
+        else:
+            thumbnail_url = user.avatar.url
+        color = discord.Colour(secrets.randbelow(0xFFFFFF))
+
+        embed = discord.Embed(title="**NOM NOMS BALANCE**",
+                              color=color,
+                              url=thumbnail_url)
+        embed.set_thumbnail(url=thumbnail_url)
+        embed.set_author(name=user.display_name)
+        embed.add_field(name="Current Balance", value=str(balance), inline=False)
+
+        await interaction.response.send_message(content="Your Nom Noms Balance", embed=embed)
+
+    @app_commands.command()
     @app_commands.allowed_installs(guilds=True, users=False)
     async def spin(self, interaction: discord.Interaction) -> None:
         """
-        Spin the wheel of fortune once per day for nom noms.
+        Spin the wheel once a day for nom noms! (Jackpot of 10,000)
         :param interaction: discord interaction to get more data and respond to
         """
         user = interaction.user
