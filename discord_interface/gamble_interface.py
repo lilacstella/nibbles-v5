@@ -24,7 +24,6 @@ class Gamble(commands.Cog):
     async def balance(self, interaction: discord.Interaction):
         """
         Check your nom noms balance.
-        :param interaction: discord interaction
         """
         user = interaction.user
         balance = get_user_nomnoms(user.id)
@@ -49,7 +48,6 @@ class Gamble(commands.Cog):
     async def spin(self, interaction: discord.Interaction) -> None:
         """
         Spin the wheel once a day for nom noms! (Jackpot of 10,000)
-        :param interaction: discord interaction to get more data and respond to
         """
         user = interaction.user
         if user.id in self.spun_today:
