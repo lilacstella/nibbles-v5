@@ -18,6 +18,9 @@ def add_user_nomnoms(discord_user_id: int, amount: int) -> int:
     :param amount:
     :return: updated nomnoms balance
     """
+    if amount <= 0:
+        raise ValueError("Amount to add must be positive.")
+
     with session_maker() as session:
         user = User.get_or_create(session, str(discord_user_id))
         user.nomnoms += amount

@@ -15,6 +15,9 @@ class Gamble(commands.Cog):
         self.spun_today = set()
         self.reset_spun_today.start()
 
+    def cog_unload(self):
+        self.reset_spun_today.cancel()
+
     @app_commands.command(name="spin", description="Spin the wheel once a day for nom noms! (Jackpot of 10,000)")
     @app_commands.allowed_installs(guilds=True, users=False)
     async def spin(self, interaction: discord.Interaction):
@@ -38,10 +41,15 @@ class Gamble(commands.Cog):
 
         await interaction.response.send_message(content="Spinning the Wheel of Fortune", embed=embed)
 
-        if secrets.randbelow(100) == 0:
-            result = 10000
+        jackpot_probability = 100
+        jackpot_prize = 10000
+
+        max_prize = 2100
+        min_prize = 700
+        if secrets.randbelow(jackpot_probability) == 0:
+            result = jackpot_prize
         else:
-            result = secrets.randbelow(2100 - 700) + 701
+            result = secrets.randbelow(max_prize - min_prize) + min_prize
 
         new_bal = add_user_nomnoms(user.id, result)
         self.spun_today.add(user.id)
@@ -52,7 +60,8 @@ class Gamble(commands.Cog):
         embed.add_field(name="Prize", value=f"{result} nom noms", inline=False)
         embed.add_field(name="Current Balance", value=str(new_bal), inline=False)
 
-        await asyncio.sleep(3)
+        spin_animation_duration = 3
+        await asyncio.sleep(spin_animation_duration)
         await interaction.edit_original_response(content='Wheel of Fortune Results', embed=embed)
 
     @tasks.loop(time=datetime.time(hour=3, minute=30, tzinfo=pytz.timezone('America/Chicago')))
