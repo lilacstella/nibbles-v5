@@ -85,6 +85,10 @@ class FAQ(Button):
             "1. When you receive a message, you can use the discord reply button to answer the query. "
             "You can see the message successfully go through when you get a confirmation. \n"
             "\n"
+            "A secret santa game belongs to a specific channel, and if you wish to bring up the same game again,"
+            " just call </secret-santa:1437581717790658662> again in the channel in which it was started.\n"
+            "This command can be ran in group DMs as well as guild channels.\n"
+            "\n"
         )
         await interaction.response.send_message(help_text, ephemeral=True)
 
