@@ -8,9 +8,12 @@ from discord.ui import Button, View
 
 # Helper functions to avoid duplicating choice/phrase logic
 def _parse_options(options: str) -> list[str]:
-    """Parse a user-supplied options string into a list of choices.
-
+    """
+    Parse a user-supplied options string into a list of choices.
     Supports comma-separated lists or space-separated tokens.
+
+    :param options: options as user input string
+    :return: list of choices
     """
     if ',' in options:
         return [x.strip() for x in options.split(',') if x.strip()]
@@ -18,7 +21,12 @@ def _parse_options(options: str) -> list[str]:
 
 
 def _make_choice_phrases(choice: str) -> list[str]:
-    """Return a list of templated response strings for a chosen option."""
+    """
+    Return a list of templated response strings for a chosen option.
+
+    :param choice: the chosen option
+    :return: list of response strings
+    """
     return [
         f'Nibbles thinks  __{choice}__  is the right option!',
         f'Of course __{choice}__ is the way to go!',
@@ -37,10 +45,12 @@ def _choice_history(chosen: list[str], remaining: list[str]) -> str:
 
 
 def _render_choice_output(picked: str, chosen: list[str], remaining: list[str]) -> str:
-    """Build the final message content (one of the templated phrases + history).
-
-    This centralizes the logic used by both the command and the reroll button so
-    they stay consistent and DRY.
+    """
+    Render the output message for a choice, including the picked option, a random phrase, and the choice history.
+    :param picked: the currently picked option
+    :param chosen: list of previously chosen options
+    :param remaining: list of remaining options
+    :return: formatted output message
     """
     messages = _make_choice_phrases(picked)
     if remaining:
@@ -57,6 +67,11 @@ class RerollButton(Button):
         self.chosen = chosen
 
     async def callback(self, interaction: discord.Interaction) -> None:
+        """
+        When the reroll button is pressed, pick a new choice from the remaining options
+        and update the message content accordingly. If no options remain, disable the button.
+        :param interaction: discord interaction
+        """
         if len(self.choices) == 0:
             await interaction.response.defer()
             return
@@ -87,12 +102,14 @@ class Misc(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="choose", description="Have Nibbles choose between multiple options for you!")
-    @discord.app_commands.describe(
-        options='what would you like nibbles to choose from (comma separated)'
-    )
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def choose(self, interaction: discord.Interaction, options: str):
+        """
+        Have Nibbles choose between multiple options for you!
+        :param interaction: discord interaction
+        :param options: what would you like nibbles to choose from (comma separated)
+        """
         choices = _parse_options(options)
 
         if len(choices) < 2:
@@ -106,7 +123,6 @@ class Misc(commands.Cog):
         chosen_list = [picked]
         # give the button a copy of the remaining choices so it can mutate them independently
         view.add_item(RerollButton(interaction.user, choices, chosen_list))
-
         content = _render_choice_output(picked, chosen_list, choices)
 
         await interaction.response.send_message(content, view=view)

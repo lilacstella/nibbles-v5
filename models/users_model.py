@@ -10,6 +10,7 @@ class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
     discord_user_id: Mapped[str] = mapped_column(unique=True, nullable=False)
+    nomnoms: Mapped[int] = mapped_column(default=0, nullable=False)
 
     gifting_to: Mapped[List["SecretSantaAssignment"]] = relationship(
         "SecretSantaAssignment",
