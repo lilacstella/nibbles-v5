@@ -1,7 +1,7 @@
 from core.secret_santa_service import create_secret_santa_game, create_special_secret_santa_game, \
     does_secret_santa_game_exist, delete_secret_santa_game, get_participants, is_crazy_mode, \
     get_one_recipient_discord_id, get_second_recipient_discord_id, log_message_sent, find_message_log_by_message_id, \
-    get_cogifter_for_recipient
+    get_cogifter_for_recipient, get_all_assignments
 from main import auth_config
 from discord_interface.utils import get_or_fetch_user
 
@@ -31,18 +31,43 @@ class Delete(Button):
                 )
                 return
 
+        await interaction.response.send_message(
+            "Are you sure you want to end the Secret Santa game? This action cannot be undone "
+            "and all assignments (if they have been made) will be revealed.",
+            view=DeleteConfirmationView(interaction.channel_id),
+            ephemeral=True
+        )
+
+
+class DeleteConfirmationView(discord.ui.View):
+    def __init__(self, channel_id: int, *, timeout: float | None = 60.0):
+        super().__init__(timeout=timeout)
+        self.channel_id = channel_id
+
+    @discord.ui.button(label="Confirm", style=discord.ButtonStyle.danger, custom_id="secret_santa_delete_confirm")
+    async def confirm(self, interaction: discord.Interaction, _: Button):
         if interaction.channel_id in secret_santa_lobbies:
             secret_santa_lobbies[interaction.channel_id].set_expire()
             secret_santa_lobbies[interaction.channel_id].update()
-            view = LayoutView(timeout=None)
-            view.add_item(secret_santa_lobbies[interaction.channel_id])
-            await interaction.response.edit_message(view=view)
 
             del secret_santa_lobbies[interaction.channel_id]
+            await interaction.response.send_message(content="The secret santa lobby has been closed.")
             return
 
+        assignments = get_all_assignments(interaction.channel_id)
+        content = "This secret santa game has been ended! Here are the secret santa assignments:\n\n"
+        for giver_id, recipient_ids in assignments.items():
+            giver_mention = f"<@{giver_id}>"
+            recipient_mentions = ", ".join(f"<@{rid}>" for rid in recipient_ids)
+            content += f"- {giver_mention} → {recipient_mentions}\n"
         delete_secret_santa_game(interaction.channel_id)
-        await interaction.response.send_message(content="This secret santa game has been ended.")
+        await interaction.response.send_message(content=content)
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary, custom_id="secret_santa_delete_cancel")
+    async def cancel(self, interaction: discord.Interaction, _: Button):
+        await interaction.response.edit_message("End game cancelled.", ephemeral=True)
+        self.stop()
+
 
 class FAQ(Button):
     def __init__(self):
@@ -81,6 +106,9 @@ class Join(Button):
                          custom_id="secret_santa_join")
 
     async def callback(self, interaction: discord.Interaction):
+        if interaction.channel_id not in secret_santa_lobbies:
+            secret_santa_lobbies[interaction.channel_id] = LobbyPage(str(interaction.guild_id),
+                                                                    str(interaction.channel_id))
         secret_santa_lobbies[interaction.channel_id].add_participant(interaction.user.id)
         secret_santa_lobbies[interaction.channel_id].update()
         view = LayoutView(timeout=None)

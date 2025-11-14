@@ -229,6 +229,20 @@ def find_message_log_by_message_id(discord_message_id: int) -> dict:
         }
         return info
 
+def get_all_assignments(channel_id: int) -> list[tuple[str, str]]:
+    """
+    Retrieves all Secret Santa assignments for the game in the specified channel.
+
+    :param channel_id: Discord channel ID
+    :return: List of tuples of gifter and receiver Discord IDs
+    """
+    with session_maker() as session:
+        game = session.query(SecretSantaContext).filter_by(channel_id=str(channel_id)).first()
+        if not game:
+            return []
+        assignments = session.query(SecretSantaAssignment).filter_by(context=game).all()
+        return [(assignment.gifter.discord_user_id, assignment.receiver.discord_user_id) for assignment in assignments]
+
 def delete_secret_santa_game(channel_id: int) -> None:
     """
     Deletes the Secret Santa game and all associated assignments and logs from the specified channel.
