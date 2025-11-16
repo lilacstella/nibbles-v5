@@ -12,6 +12,7 @@ from core.transaction_service import get_user_nomnoms, add_user_nomnoms
 class Gamble(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.leaderboard = {}
         self.spun_today = set()
         self.reset_spun_today.start()
 
@@ -39,7 +40,7 @@ class Gamble(commands.Cog):
                               url=thumbnail_url)
         embed.set_thumbnail(url=thumbnail_url)
         embed.set_author(name=user.display_name)
-        embed.add_field(name="Current Balance", value=str(balance), inline=False)
+        embed.add_field(name="Current Balance", value=f"{balance} 🍪", inline=False)
 
         await interaction.response.send_message(content="Your Nom Noms Balance", embed=embed)
 
@@ -61,8 +62,7 @@ class Gamble(commands.Cog):
             thumbnail_url = user.avatar.url
         color = discord.Colour(secrets.randbelow(0xFFFFFF))
         embed = discord.Embed(title="**SPINNING**",
-                              color=color,
-                              url=thumbnail_url)
+                              color=color)
         embed.set_image(url="https://i.pinimg.com/originals/94/cc/d5/94ccd56f2a24d1eb9486d86fcee0b3b1.gif")
         embed.set_author(name=user.display_name)
         embed.set_footer(text="best of luck!", icon_url="https://cdn.discordapp.com/emojis/948031133281562724.webp")
@@ -79,14 +79,24 @@ class Gamble(commands.Cog):
         else:
             result = secrets.randbelow(max_prize - min_prize) + min_prize
 
+        new_highscore = False
+        if self.leaderboard.get(interaction.channel_id, (None, 0))[1] < result:
+            self.leaderboard[interaction.channel_id] = interaction.user, result
+            new_highscore = True
+
         new_bal = add_user_nomnoms(user.id, result)
         self.spun_today.add(user.id)
 
-        embed = discord.Embed(title="**REWARDS**", color=color, url=thumbnail_url)
+        embed = discord.Embed(title="**REWARDS**", color=color)
         embed.set_thumbnail(url=thumbnail_url)
         embed.set_author(name=user.display_name)
-        embed.add_field(name="Prize", value=f"{result} nom noms", inline=False)
+        embed.add_field(name="Prize", value=f"{result} 🍪", inline=False)
         embed.add_field(name="Current Balance", value=str(new_bal), inline=False)
+        if new_highscore:
+            embed.set_footer(text=f"You got a new highscore! 👑 {user.display_name}")
+        else:
+            user, score = self.leaderboard[interaction.channel_id]
+            embed.set_footer(text=f"High score today: {score} 🍪 by 👑 {user.display_name}")
 
         spin_animation_duration = 3
         await asyncio.sleep(spin_animation_duration)
@@ -98,6 +108,7 @@ class Gamble(commands.Cog):
         Resets the spun_today set every day at 3:30 AM Central Time.
         """
         self.spun_today.clear()
+        self.leaderboard.clear()
 
 
 async def setup(bot):
