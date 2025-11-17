@@ -153,6 +153,13 @@ class Start(Button):
                 )
                 return
 
+        if len(secret_santa_lobbies[interaction.channel_id].participants) <= 2:
+            await interaction.response.send_message(
+                "At least 3 participants are required to start a Secret Santa game.",
+                ephemeral=True
+            )
+            return
+
         if self.plus:
             secret_santa_lobbies[interaction.channel_id].special_start()
         else:
