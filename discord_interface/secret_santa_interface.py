@@ -71,14 +71,14 @@ class DeleteConfirmationView(discord.ui.View):
 
 class FAQ(Button):
     def __init__(self):
-        super().__init__(emoji="❔", label="how to use",
+        super().__init__(emoji="❔", label="How to use",
                          style=discord.ButtonStyle.gray,
                          custom_id="secret_santa_faq")
 
     async def callback(self, interaction: discord.Interaction):
         command_mention = '</secret-santa:1437581717790658662>'
         help_text = (
-            f"### how to use {command_mention}\n"
+            f"### How to use {command_mention}\n"
             f"1. Bring up the lobby page by calling {command_mention}\n"
             "1. Get everyone to join by clicking the join button\n"
             "1. Once everyone is in, click the 'Start' button. Now, Nibbles will automatically assign everyone a random"
@@ -113,6 +113,7 @@ class Join(Button):
         secret_santa_lobbies[interaction.channel_id].update()
         view = LayoutView(timeout=None)
         view.add_item(secret_santa_lobbies[interaction.channel_id])
+        view.add_item(ActionRow(FAQ()))
         await interaction.response.edit_message(view=view)
 
 
@@ -125,6 +126,7 @@ class Leave(Button):
         secret_santa_lobbies[interaction.channel_id].update()
         view = LayoutView(timeout=None)
         view.add_item(secret_santa_lobbies[interaction.channel_id])
+        view.add_item(ActionRow(FAQ()))
         await interaction.response.edit_message(view=view)
 
 
@@ -156,10 +158,10 @@ class Start(Button):
         else:
             secret_santa_lobbies[interaction.channel_id].start()
         view = LayoutView(timeout=None)
-
         page = StatusPage(interaction.channel_id,
                           crazy_mode=is_crazy_mode(interaction.channel_id))
         view.add_item(page)
+        view.add_item(ActionRow(FAQ()))
         await interaction.response.edit_message(view=view)
         del secret_santa_lobbies[interaction.channel_id]
 
@@ -397,8 +399,8 @@ class SecretSanta(commands.Cog):
         if does_secret_santa_game_exist(interaction.channel_id):
             page = StatusPage(interaction.channel_id, crazy_mode=is_crazy_mode(interaction.channel_id))
             view.add_item(page)
-            await interaction.response.send_message(view=view, ephemeral=True)
             view.add_item(ActionRow(FAQ()))
+            await interaction.response.send_message(view=view, ephemeral=True)
             return
 
         if interaction.channel_id in secret_santa_lobbies:
