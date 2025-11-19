@@ -56,16 +56,16 @@ class DeleteConfirmationView(discord.ui.View):
 
         assignments = get_all_assignments(interaction.channel_id)
         content = "This secret santa game has been ended! Here are the secret santa assignments:\n\n"
-        for giver_id, recipient_ids in assignments.items():
+        for giver_id, recipient_id in assignments:
             giver_mention = f"<@{giver_id}>"
-            recipient_mentions = ", ".join(f"<@{rid}>" for rid in recipient_ids)
+            recipient_mentions = f"<@{recipient_id}>"
             content += f"- {giver_mention} → {recipient_mentions}\n"
         delete_secret_santa_game(interaction.channel_id)
         await interaction.response.send_message(content=content)
 
     @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary, custom_id="secret_santa_delete_cancel")
     async def cancel(self, interaction: discord.Interaction, _: Button):
-        await interaction.response.edit_message("End game cancelled.", ephemeral=True)
+        await interaction.response.edit_message(content="End game cancelled.")
         self.stop()
 
 
@@ -148,7 +148,7 @@ class Start(Button):
             perms = interaction.user.resolved_permissions
             if not perms.manage_events:
                 await interaction.response.send_message(
-                    "You need the 'Manage Events' permission to end a Secret Santa game.",
+                    "You need the 'Manage Events' permission to start a Secret Santa game.",
                     ephemeral=True
                 )
                 return
