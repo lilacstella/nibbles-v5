@@ -36,8 +36,7 @@ class Gamble(commands.Cog):
         color = discord.Colour(secrets.randbelow(0xFFFFFF))
 
         embed = discord.Embed(title="**NOM NOMS BALANCE**",
-                              color=color,
-                              url=thumbnail_url)
+                              color=color)
         embed.set_thumbnail(url=thumbnail_url)
         embed.set_author(name=user.display_name)
         embed.add_field(name="Current Balance", value=f"{balance} 🍪", inline=False)
